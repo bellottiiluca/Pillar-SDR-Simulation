@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alpha × Pillar — SDR Intern Simulation</title>
+  <meta name="description" content="Simulazione interattiva per il ruolo di SDR Intern presso Pillar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="crm.css?v=8" />
+  <link rel="stylesheet" href="call.css?v=8" />
+</head>
+<body>
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 0 — BOOT SCREEN                          -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="phase-boot" class="phase active">
+    <!-- Floating gradient orbs -->
+    <div class="boot-orbs">
+      <div class="boot-orb orb-1"></div>
+      <div class="boot-orb orb-2"></div>
+      <div class="boot-orb orb-3"></div>
+    </div>
+
+    <div class="boot-container">
+
+      <!-- Logos -->
+      <div class="boot-logo-group">
+        <div class="boot-logo pillar-logo">
+          <img class="boot-logo-icon pillar-icon-img" src="pillar-icon-only.png" alt="Pillar Icon">
+          <img class="boot-logo-wordmark pillar-text-img" src="pillar-text-only.png" alt="Pillar">
+        </div>
+
+        <div class="boot-x-wrapper">
+          <span class="boot-x">×</span>
+        </div>
+
+        <div class="boot-logo alpha-logo">
+          <div class="alpha-icon-box">
+            <img class="boot-logo-icon alpha-icon-img" src="alpha-icon-only.png" alt="Alpha Icon">
+          </div>
+          <span class="boot-logo-text alpha-text">Alpha</span>
+        </div>
+      </div>
+
+      <!-- Hero title with gradient -->
+      <div class="boot-hero-block">
+        <h1 class="boot-hero-title">SDR INTERN<br>SIMULATION</h1>
+        <p class="boot-hero-tagline">La tua prima giornata come Sales Development Representative inizia ora.</p>
+      </div>
+
+      <!-- Info chips -->
+      <div class="boot-info-chips">
+        <div class="boot-chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ~45 minuti
+        </div>
+        <div class="boot-chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          8 fasi
+        </div>
+      </div>
+
+      <!-- CTA — visible immediately -->
+      <button class="btn-start-sim visible" id="btn-start-sim">
+        <span class="btn-start-inner">
+          Inizia la simulazione
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <!-- Candidate info overlay -->
+    <div class="candidate-overlay" id="candidate-overlay">
+      <div class="boot-orbs">
+        <div class="boot-orb orb-1"></div>
+        <div class="boot-orb orb-2"></div>
+        <div class="boot-orb orb-3"></div>
+      </div>
+      <div class="candidate-form-container">
+        <!-- Same logos as boot -->
+        <div class="boot-logo-group" style="animation:none;opacity:1">
+          <div class="boot-logo">
+            <img src="pillar-icon-only.png" alt="Pillar" style="height:30px;">
+            <span style="font-size:20px;font-weight:700;letter-spacing:-.03em">Pillar</span>
+          </div>
+          <span class="boot-x">×</span>
+          <div class="boot-logo">
+            <div class="alpha-icon-box">
+              <img class="boot-logo-icon alpha-icon-img" src="alpha-icon-only.png" alt="Alpha Icon">
+            </div>
+            <span style="font-size:20px;font-weight:700;letter-spacing:-.03em">Alpha</span>
+          </div>
+        </div>
+
+        <h3 class="candidate-form-title">Inserisci i tuoi dati</h3>
+        <p class="candidate-form-sub">per personalizzare la simulazione</p>
+
+        <form id="candidate-form" autocomplete="off">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="cand-name">Nome</label>
+              <input type="text" id="cand-name" placeholder="Mario" required>
+            </div>
+            <div class="form-field">
+              <label for="cand-surname">Cognome</label>
+              <input type="text" id="cand-surname" placeholder="Rossi" required>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="cand-email">Email</label>
+            <input type="email" id="cand-email" placeholder="mario.rossi@email.com" required>
+          </div>
+          <button type="submit" class="btn-candidate-submit">
+            <span class="btn-start-inner">
+              Avvia simulazione
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 1 — FOUNDER PRESENTATION                 -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="phase-founder" class="phase">
+    <div class="founder-container">
+      <!-- Floating gradient orbs (same as boot) -->
+      <div class="boot-orbs">
+        <div class="boot-orb orb-1"></div>
+        <div class="boot-orb orb-2"></div>
+        <div class="boot-orb orb-3"></div>
+      </div>
+      <nav class="sim-nav sim-nav-minimal">
+        <div class="sim-nav-left">
+          <img class="sim-nav-logo-img" src="pillar-icon-only.png" alt="Pillar Logo">
+          <span class="sim-nav-brand">Pillar</span>
+        </div>
+        <div class="sim-nav-right"></div>
+      </nav>
+
+      <!-- Founder video card -->
+      <div class="founder-stage">
+        <div class="founder-video-card" id="founder-card">
+          <div class="founder-avatar-wrapper">
+            <img src="founder.png" alt="Gabriel Guinea Montalvo, Founder di Pillar" class="founder-avatar" />
+            <div class="founder-audio-wave" id="audio-wave">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="founder-info">
+            <span class="founder-name">Gabriel Guinea Montalvo</span>
+            <span class="founder-title">Co-Founder & CEO</span>
+          </div>
+        </div>
+
+        <!-- Captions area -->
+        <div class="founder-captions-area">
+          <div class="founder-caption" id="founder-caption"></div>
+        </div>
+
+        <!-- Progress dots -->
+        <div class="founder-slide-dots" id="slide-dots"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 2 — WORKSPACE (Slack-inspired)            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="phase-slack" class="phase">
+    <div class="ws-container">
+
+      <!-- ── Sidebar ── -->
+      <aside class="ws-sidebar">
+        <div class="ws-sidebar-header">
+          <div class="ws-workspace-icon">
+            <img src="pillar-icon-only.png" alt="Pillar" class="ws-workspace-logo-img">
+          </div>
+          <div class="ws-workspace-info" style="display:flex;align-items:center;">
+            <span class="ws-workspace-name">Pillar</span>
+          </div>
+        </div>
+
+        <div class="ws-sidebar-section">
+          <span class="ws-sidebar-label">Canali</span>
+          <ul class="ws-channel-list" id="ws-channel-list">
+            <li class="ws-channel ws-channel-active" data-channel="welcome">
+              <span class="ws-channel-hash">#</span>
+              <span class="ws-channel-name">welcome</span>
+              <span class="ws-unread-badge" id="badge-welcome" style="display:none">0</span>
+            </li>
+            <li class="ws-channel" data-channel="general">
+              <span class="ws-channel-hash">#</span>
+              <span class="ws-channel-name">general</span>
+              <span class="ws-unread-badge" id="badge-general" style="display:none">0</span>
+            </li>
+            <li class="ws-channel" data-channel="sales">
+              <span class="ws-channel-hash">#</span>
+              <span class="ws-channel-name">sales</span>
+              <span class="ws-unread-badge" id="badge-sales" style="display:none">0</span>
+            </li>
+            <li class="ws-channel" data-channel="inbound">
+              <span class="ws-channel-hash">#</span>
+              <span class="ws-channel-name">inbound</span>
+              <span class="ws-unread-badge" id="badge-inbound" style="display:none">0</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="ws-sidebar-section">
+          <span class="ws-sidebar-label">Messaggi diretti</span>
+          <ul class="ws-channel-list">
+            <li class="ws-channel ws-dm-item ws-dm-locked" data-channel="dm-marco" id="ws-dm-marco">
+              <div class="ws-dm-avatar-wrapper">
+                <span class="ws-dm-avatar"><img src="avatar-marco.jpg" alt="Marco Conti"></span>
+                <span class="ws-dm-status-dot ws-dm-online"></span>
+              </div>
+              <span class="ws-channel-name">Marco Conti</span>
+              <span class="ws-unread-badge" id="badge-dm-marco" style="display:none">0</span>
+            </li>
+            <li class="ws-channel ws-dm-item ws-dm-locked" data-channel="dm-sara" id="ws-dm-sara">
+              <div class="ws-dm-avatar-wrapper">
+                <span class="ws-dm-avatar"><img src="avatar-sara.jpg" alt="Sara Ricci"></span>
+                <span class="ws-dm-status-dot ws-dm-online"></span>
+              </div>
+              <span class="ws-channel-name">Sara Ricci</span>
+              <span class="ws-unread-badge" id="badge-dm-sara" style="display:none">0</span>
+            </li>
+            <li class="ws-channel ws-dm-item ws-dm-locked" data-channel="dm-gabriel" id="ws-dm-gabriel">
+              <div class="ws-dm-avatar-wrapper">
+                <span class="ws-dm-avatar"><img src="founder.png" alt="Gabriel G."></span>
+                <span class="ws-dm-status-dot ws-dm-online"></span>
+              </div>
+              <span class="ws-channel-name">Gabriel G.</span>
+              <span class="ws-unread-badge" id="badge-dm-gabriel" style="display:none">0</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Sidebar user footer -->
+        <div class="ws-sidebar-footer" id="ws-sidebar-footer">
+          <span class="ws-user-avatar" id="ws-user-avatar">?</span>
+          <span class="ws-user-name" id="ws-user-name">Tu</span>
+        </div>
+      </aside>
+
+      <!-- ── Chat area ── -->
+      <main class="ws-main">
+        <div class="ws-chat-header" id="ws-chat-header">
+          <div class="ws-chat-channel-info" id="ws-chat-channel-info">
+            <span class="ws-chat-hash" id="ws-chat-hash">#</span>
+            <span class="ws-chat-channel-name" id="ws-chat-channel-name">welcome</span>
+            <span class="ws-chat-online-dot" id="ws-chat-online-dot" style="display:none"></span>
+          </div>
+          <div class="ws-chat-header-right">
+            <span class="ws-chat-topic" id="ws-chat-topic">Benvenuto nel team Pillar</span>
+          </div>
+        </div>
+
+        <div class="ws-messages-scroll" id="ws-messages-scroll">
+          <div class="ws-messages" id="ws-messages">
+
+            <!-- Messages injected by JS -->
+          </div>
+        </div>
+
+        <!-- Typing indicator -->
+        <div class="ws-typing-bar" id="ws-typing-bar" style="display:none">
+          <div class="ws-typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="ws-typing-text" id="ws-typing-text">Marco sta scrivendo…</span>
+        </div>
+
+        <!-- Input area -->
+        <div class="ws-input-area" id="ws-input-area">
+          <div class="ws-input-wrapper" id="ws-input-wrapper">
+            <button class="ws-attach-btn" aria-label="Allega">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="text" class="ws-input" placeholder="Scrivi un messaggio in #welcome…" id="ws-input" disabled />
+            <button class="ws-send-btn" aria-label="Invia" id="ws-send" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 3 — CRM (Pipeline Inbound)               -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="phase-crm" class="phase">
+    <!-- Topbar -->
+    <div class="crm-topbar">
+      <div class="crm-topbar-left">
+        <img src="pillar-icon-only.png" alt="Pillar" class="crm-topbar-logo">
+        <span class="crm-topbar-brand">Pillar</span>
+        <div class="crm-breadcrumb">
+          <span>Pipeline</span>
+          <span class="crm-breadcrumb-sep">›</span>
+          <span class="crm-breadcrumb-active">Inbound</span>
+        </div>
+      </div>
+      <div class="crm-topbar-center"></div>
+      <div class="crm-topbar-right">
+        <span class="crm-user-avatar" id="crm-user-avatar">?</span>
+      </div>
+    </div>
+
+    <!-- Body: 3-column layout -->
+    <div class="crm-body">
+      <!-- Left Sidebar: Prioritization -->
+      <aside class="crm-sidebar" id="crm-priority-bar">
+        <div class="crm-sidebar-priority-header">
+          <div class="crm-sidebar-priority-title">
+            <span>Priorità Inbound</span>
+          </div>
+          <span class="crm-priority-count" id="crm-priority-count">0 / 5</span>
+        </div>
+        <div class="crm-sidebar-priority-hint">Aggiungi i lead e ordinali per priorità</div>
+        <div class="crm-priority-slots" id="crm-priority-slots">
+          <!-- Slots injected by crm.js -->
+        </div>
+        <div class="crm-sidebar-priority-actions">
+          <button class="crm-priority-confirm" id="crm-priority-confirm" disabled>
+            Conferma priorità
+          </button>
+        </div>
+
+        <!-- Motivation section (hidden until confirm clicked) -->
+        <div class="crm-motivation-section" id="crm-motivation-section">
+          <div class="crm-motivation-divider"></div>
+          <div class="crm-motivation-header">
+            <span class="crm-motivation-title">Motivazione</span>
+            <span class="crm-motivation-subtitle">Spiega il criterio con cui hai ordinato i lead per priorità</span>
+          </div>
+          <textarea class="crm-motivation-textarea" id="crm-priority-motivation" placeholder="Es. Ho dato priorità ai lead con segnale più forte e ruolo decisionale diretto..."></textarea>
+          <button class="crm-motivation-confirm" id="crm-motivation-confirm" disabled>
+            Conferma e prosegui
+          </button>
+        </div>
+      </aside>
+
+      <!-- Center: Lead List -->
+      <main class="crm-main">
+        <div class="crm-main-header">
+          <div class="crm-main-header-left">
+            <h2 class="crm-main-title">Lead Inbound</h2>
+            <span class="crm-main-subtitle">Pipeline attiva · 5 lead</span>
+          </div>
+          <div class="crm-main-header-right">
+          </div>
+        </div>
+        <div class="crm-lead-list" id="crm-lead-list">
+          <!-- Lead cards injected by crm.js -->
+        </div>
+      </main>
+
+      <!-- Right: Lead Detail -->
+      <aside class="crm-detail" id="crm-detail">
+        <div class="crm-detail-empty" id="crm-detail-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <p>Seleziona un lead dalla lista<br>per visualizzare i dettagli</p>
+        </div>
+        <div class="crm-detail-content" id="crm-detail-content" style="display:none">
+          <!-- Injected by crm.js -->
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 3 — DISCOVERY CALL                        -->
+  <section id="phase-call" class="phase">
+
+    <!-- Connecting overlay -->
+    <div class="call-connecting" id="call-connecting">
+      <div class="call-connecting-content">
+        <div class="call-connecting-avatar">
+          <div class="call-connecting-avatar-circle" id="call-connecting-avatar-circle">
+            <span class="call-connecting-initials" id="call-connecting-initials">MF</span>
+          </div>
+          <div class="call-connecting-ring"></div>
+          <div class="call-connecting-ring call-connecting-ring-2"></div>
+        </div>
+        <span class="call-connecting-name" id="call-connecting-name">Marco Ferraro</span>
+        <span class="call-connecting-role" id="call-connecting-role">Direttore Operativo</span>
+        <span class="call-connecting-company" id="call-connecting-company">Costruzioni Ferraro &amp; Figli</span>
+        <span class="call-connecting-status" id="call-connecting-status">Avvio chiamata...</span>
+      </div>
+    </div>
+
+    <!-- Call UI -->
+    <div class="call-container" id="call-container" style="display:none">
+      
+      <!-- Top Bar — matches CRM topbar exactly -->
+      <div class="call-topbar">
+        <div class="call-topbar-left">
+          <img src="pillar-icon-only.png" alt="Pillar" class="call-topbar-logo">
+          <span class="call-topbar-brand">Pillar</span>
+          <div class="call-topbar-breadcrumb">
+            <span>Pipeline</span>
+            <span class="call-topbar-sep">›</span>
+            <span class="call-topbar-active">Discovery Call</span>
+          </div>
+        </div>
+        <div class="call-topbar-right">
+          <div class="call-connection-status status-connecting" id="call-connection-status">
+            <span class="status-dot"></span>
+            <span id="call-connection-status-text">Verifica connessione...</span>
+          </div>
+          <span class="call-topbar-user" id="call-user-avatar">?</span>
+        </div>
+      </div>
+
+      <!-- Body: 3 columns -->
+      <div class="call-body">
+
+        <!-- ═══ CENTER — CALL HERO ═══ -->
+        <main class="call-hero">
+          <div class="call-hero-content">
+            <!-- Large Prospect Avatar -->
+            <div class="call-hero-avatar" id="call-prospect-avatar">
+              <span id="call-prospect-initials">MF</span>
+            </div>
+
+            <!-- Prospect Identity -->
+            <div class="call-hero-identity">
+              <span class="call-hero-name" id="call-prospect-name">Marco Ferraro</span>
+              <span class="call-hero-detail"><span id="call-prospect-role">Direttore Operativo</span> · <span id="call-prospect-company">Costruzioni Ferraro &amp; Figli</span></span>
+            </div>
+
+            <!-- Status -->
+            <div class="call-hero-status">
+              <span class="call-hero-status-dot"></span>
+              <span>In chiamata</span>
+              <span class="call-hero-timer" id="call-hero-timer">00:00</span>
+            </div>
+
+            <!-- Waveform -->
+            <div class="call-waveform" id="call-waveform">
+              <div class="call-waveform-bars" id="call-waveform-bars">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden transcript container for JS tracking -->
+          <div id="call-chat" style="display:none"></div>
+
+          <!-- Text input fallback (only shown when speech unavailable) -->
+          <div class="call-input-area" id="call-input-area">
+            <div class="call-input-wrapper">
+              <input type="text" class="call-input" id="call-input" placeholder="Scrivi il tuo messaggio..." />
+              <button class="call-send-btn" id="call-send-btn" aria-label="Invia">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Controls bar -->
+          <div class="call-controls">
+            <button class="call-ctrl-btn active" id="call-btn-mic" title="Microfono">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button class="call-ctrl-btn call-ctrl-end" id="call-btn-end" title="Termina chiamata">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+            </button>
+          </div>
+        </main>
+
+        <!-- ═══ RIGHT — CRM SNAPSHOT + DISCOVERY ═══ -->
+        <aside class="call-sidebar">
+
+          <!-- CRM Snapshot Header -->
+          <div class="call-sidebar-header">
+            <span class="call-sidebar-title">CRM Snapshot</span>
+          </div>
+
+          <!-- Info Grid -->
+          <div class="call-sidebar-grid" id="call-crm-grid">
+            <!-- Filled by call.js -->
+          </div>
+
+          <!-- Segnali già osservati -->
+          <div class="call-sidebar-section-header">
+            <span class="call-sidebar-section-title">Segnali già osservati</span>
+          </div>
+          <div class="call-sidebar-timeline" id="call-crm-timeline">
+            <!-- Filled by call.js -->
+          </div>
+
+          <!-- Da Scoprire (Discovery) -->
+          <div class="call-sidebar-section-header">
+            <span class="call-sidebar-section-title">Da Scoprire</span>
+          </div>
+          <div class="call-discovery-list" id="call-discovery-list">
+            <div class="call-discovery-item" data-field="pain">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Pain</span>
+            </div>
+            <div class="call-discovery-item" data-field="budget">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Budget</span>
+            </div>
+            <div class="call-discovery-item" data-field="decision_maker">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Decision Maker</span>
+            </div>
+            <div class="call-discovery-item" data-field="timeline">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Timeline</span>
+            </div>
+            <div class="call-discovery-item" data-field="current_process">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Processo Attuale</span>
+            </div>
+            <div class="call-discovery-item" data-field="priority">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Urgenza</span>
+            </div>
+            <div class="call-discovery-item" data-field="next_steps">
+              <span class="call-discovery-check"></span>
+              <span class="call-discovery-label">Next Steps</span>
+            </div>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 4 — QUALIFICATION (CRM-integrated)       -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="phase-qualification" class="phase">
+    <!-- Topbar (mirrors CRM topbar exactly) -->
+    <div class="crm-topbar">
+      <div class="crm-topbar-left">
+        <img src="pillar-icon-only.png" alt="Pillar" class="crm-topbar-logo">
+        <span class="crm-topbar-brand">Pillar</span>
+        <div class="crm-breadcrumb">
+          <span>Pipeline</span>
+          <span class="crm-breadcrumb-sep">›</span>
+          <span class="crm-breadcrumb-active">Qualification</span>
+        </div>
+      </div>
+      <div class="crm-topbar-right">
+        <span class="crm-user-avatar" id="qual-user-avatar">?</span>
+      </div>
+    </div>
+
+    <!-- Body: 2-column layout (no left sidebar) -->
+    <div class="crm-body qual-crm-body">
+
+      <!-- Center: Lead List (read-only) -->
+      <main class="crm-main">
+        <div class="crm-main-header">
+          <div class="crm-main-header-left">
+            <h2 class="crm-main-title">Lead Inbound</h2>
+            <span class="crm-main-subtitle">Pipeline attiva · 5 lead</span>
+          </div>
+          <div class="crm-main-header-right"></div>
+        </div>
+        <div class="crm-lead-list" id="qual-lead-list">
+          <!-- Lead cards injected by call.js -->
+        </div>
+      </main>
+
+      <!-- Right: Lead Detail + Qualification Form -->
+      <aside class="crm-detail" id="qual-detail">
+        <div class="crm-detail-content" id="qual-detail-content" style="display:block">
+
+          <!-- Lead info header (populated by JS) -->
+          <div class="crm-detail-header" id="qual-lead-header">
+            <!-- Injected by call.js -->
+          </div>
+
+          <!-- Qualification form -->
+          <div class="qual-form-divider">
+            <span class="qual-form-divider-text">Qualification</span>
+          </div>
+
+          <div class="qual-form" id="qual-form">
+            <!-- Pain -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-pain">Pain</label>
+              <textarea class="qual-form-textarea qual-form-textarea-pain" id="qual-pain" placeholder="Riassumi il principale problema emerso durante la chiamata…" rows="5"></textarea>
+            </div>
+
+            <!-- Budget -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-budget">Budget</label>
+              <input type="text" class="qual-form-input" id="qual-budget" placeholder="Es. €20.000–30.000 oppure Da definire">
+            </div>
+
+            <!-- Decision Maker -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-dm">Decision Maker</label>
+              <input type="text" class="qual-form-input" id="qual-dm" placeholder="Es. CEO, Proprietario, Direttore Operations…">
+            </div>
+
+            <!-- Timeline -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-timeline">Timeline</label>
+              <select class="qual-form-select" id="qual-timeline">
+                <option value="" disabled selected>Seleziona…</option>
+                <option value="immediata">Immediata</option>
+                <option value="1-mese">Entro 1 mese</option>
+                <option value="1-3-mesi">1–3 mesi</option>
+                <option value="oltre-3">Oltre 3 mesi</option>
+                <option value="non-definita">Non definita</option>
+              </select>
+            </div>
+
+            <!-- Urgenza -->
+            <div class="qual-form-field">
+              <label class="qual-form-label">Urgenza</label>
+              <div class="qual-pill-group" id="qual-urgency" data-field="urgency">
+                <button class="qual-pill" data-value="alta">Alta</button>
+                <button class="qual-pill" data-value="media">Media</button>
+                <button class="qual-pill" data-value="bassa">Bassa</button>
+              </div>
+            </div>
+
+            <!-- Fit -->
+            <div class="qual-form-field">
+              <label class="qual-form-label">Fit</label>
+              <div class="qual-pill-group" id="qual-fit" data-field="fit">
+                <button class="qual-pill" data-value="alto">Alto</button>
+                <button class="qual-pill" data-value="medio">Medio</button>
+                <button class="qual-pill" data-value="basso">Basso</button>
+              </div>
+            </div>
+
+            <!-- Next Step -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-nextstep">Next Step</label>
+              <select class="qual-form-select" id="qual-nextstep">
+                <option value="" disabled selected>Seleziona…</option>
+                <option value="demo">Organizzare demo</option>
+                <option value="materiale">Inviare materiale</option>
+                <option value="followup">Follow-up</option>
+                <option value="coinvolgere-dm">Coinvolgere decision maker</option>
+                <option value="non-interessato">Non interessato</option>
+              </select>
+            </div>
+
+            <!-- Note -->
+            <div class="qual-form-field">
+              <label class="qual-form-label" for="qual-notes">Note</label>
+              <textarea class="qual-form-textarea qual-form-textarea-lg" id="qual-notes" placeholder="Informazioni aggiuntive emerse durante la discovery…" rows="3"></textarea>
+            </div>
+
+            <!-- Save CTA (sticky footer) -->
+          </div>
+
+        </div>
+        <div class="qual-save-footer">
+          <button class="qual-crm-save-btn" id="qual-save-btn" disabled>
+            Salva Qualification
+          </button>
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- Toast notification -->
+    <div class="qual-toast" id="qual-toast">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Qualification salvata
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- ANALYTICS OVERLAY (hidden, tracks engagement)   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="analytics-overlay" class="analytics-overlay hidden">
+    <div class="analytics-card">
+      <h3>📊 Alpha — Dati raccolti (Fase 1)</h3>
+      <div class="analytics-grid" id="analytics-grid">
+        <!-- Filled by JS -->
+      </div>
+      <button class="btn-close-analytics" id="btn-close-analytics">Chiudi</button>
+    </div>
+  </div>
+  <script src="elevenlabs.bundle.js"></script>
+  <script src="app.js?v=4"></script>
+  <script src="crm.js?v=4"></script>
+  <script src="call.js?v=4"></script>
+</body>
+</html>

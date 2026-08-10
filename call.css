@@ -1,0 +1,497 @@
+/* ══════════════════════════════════════════
+   DISCOVERY CALL — Immersive Phone Call UI
+   HubSpot / Salesforce / Attio inspired
+   ══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   PHASE CONTAINER
+   ══════════════════════════════════════════ */
+#phase-call{
+  background:#fff;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+}
+
+/* ══════════════════════════════════════════
+   1. CONNECTING SCREEN
+   ══════════════════════════════════════════ */
+#call-connecting{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#ffffff;
+  z-index:200;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease;
+}
+#call-connecting.active{
+  opacity:1;pointer-events:auto;
+}
+.call-connecting-content{
+  display:flex;flex-direction:column;
+  align-items:center;gap:20px;
+  animation:callFadeIn .6s cubic-bezier(.22,1,.36,1) both;
+}
+.call-connecting-avatar{
+  position:relative;
+  width:100px;height:100px;
+}
+.call-connecting-avatar-circle{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--pl-blue);
+  position:relative;z-index:2;
+}
+.call-connecting-initials{
+  font-size:28px;font-weight:600;
+  color:var(--pl-white);
+  letter-spacing:.02em;
+  user-select:none;
+}
+.call-connecting-ring{
+  position:absolute;inset:0;
+  border-radius:50%;
+  border:2px solid rgba(37,99,235,0.2);
+  animation:callRingPulse 1.8s cubic-bezier(.4,0,.2,1) infinite;
+  z-index:1;
+}
+.call-connecting-ring:nth-child(2){animation-delay:.6s;}
+.call-connecting-ring:nth-child(3){animation-delay:1.2s;}
+.call-connecting-name{
+  font-size:20px;font-weight:600;
+  color:var(--pl-black);letter-spacing:-.02em;text-align:center;
+}
+.call-connecting-role{
+  font-size:13px;color:var(--pl-gray-500);text-align:center;margin-top:-14px;
+}
+.call-connecting-company{
+  font-size:13px;font-weight:500;color:var(--pl-gray-400);text-align:center;margin-top:-12px;
+}
+.call-connecting-status{
+  font-size:14px;color:var(--pl-gray-500);margin-top:8px;
+  display:flex;align-items:center;gap:6px;
+}
+
+/* ══════════════════════════════════════════
+   2. CALL CONTAINER & TOPBAR
+   Reuses exact CRM topbar styles for continuity
+   ══════════════════════════════════════════ */
+.call-container{
+  display:flex;flex-direction:column;
+  width:100%;height:100%;
+  background:#fff;
+}
+.call-topbar{
+  height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  border-bottom:1px solid var(--pl-gray-200);
+  background:#fff;flex-shrink:0;z-index:20;
+}
+.call-topbar-left{
+  display:flex;align-items:center;gap:12px;
+}
+.call-topbar-logo{
+  height:24px;width:24px;object-fit:contain;
+}
+.call-topbar-brand{
+  font-family:var(--pl-font-display);
+  font-weight:700;font-size:16px;
+  color:var(--pl-black);letter-spacing:-.03em;
+}
+.call-topbar-breadcrumb{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;color:var(--pl-gray-500);
+}
+.call-topbar-sep{color:var(--pl-gray-400);}
+.call-topbar-active{color:var(--pl-black);font-weight:500;}
+.call-topbar-right{
+  display:flex;align-items:center;gap:16px;
+}
+.call-topbar-timer{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:8px;
+  background:var(--pl-gray-100);
+  font-size:13px;font-weight:600;
+  color:var(--pl-gray-700);font-variant-numeric:tabular-nums;
+}
+.call-topbar-timer-icon{color:var(--pl-gray-500);}
+.call-topbar-user{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#f97316,#ef4444);
+  color:#fff;font-size:13px;font-weight:600;
+}
+
+/* ══════════════════════════════════════════
+   3. BODY — 3-Column Layout
+   ══════════════════════════════════════════ */
+.call-body{
+  display:flex;flex:1;overflow:hidden;
+}
+
+/* ══════════════════════════════════════════
+   3A. RIGHT SIDEBAR — Unified CRM + Discovery
+   Matches the screenshot layout exactly
+   ══════════════════════════════════════════ */
+.call-sidebar{
+  width:380px;
+  border-left:1px solid var(--pl-gray-200);
+  background:#f9fafb;
+  overflow-y:auto;flex-shrink:0;
+  padding:0;
+}
+
+/* Sidebar header */
+.call-sidebar-header{
+  padding:24px 24px 6px;
+}
+.call-sidebar-title{
+  font-size:11px;font-weight:700;
+  color:var(--pl-gray-400);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+/* Info Grid */
+.call-sidebar-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  padding:10px 24px 20px;
+}
+.call-sidebar-grid-item,
+.call-crm-grid-item{
+  display:flex;flex-direction:column;gap:3px;
+}
+.call-crm-grid-label{
+  font-size:10px;font-weight:600;
+  color:var(--pl-gray-400);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.call-crm-grid-value{
+  font-size:13px;color:var(--pl-black);font-weight:500;
+}
+.call-crm-signal-alto{color:#15803d;font-weight:600;}
+.call-crm-signal-medio{color:#c2410c;font-weight:600;}
+.call-crm-signal-basso{color:#dc2626;font-weight:600;}
+
+/* Section headers */
+.call-sidebar-section-header{
+  padding:6px 24px 8px;
+}
+.call-sidebar-section-title{
+  font-size:10px;font-weight:700;
+  color:var(--pl-gray-400);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+/* Activity Timeline */
+.call-sidebar-timeline{
+  display:flex;flex-direction:column;gap:0;
+  padding:0 24px 16px;
+}
+.call-crm-timeline-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:7px 0;
+}
+.call-crm-timeline-item:last-child{border-bottom:none;}
+.call-crm-timeline-icon{
+  font-size:14px;flex-shrink:0;margin-top:1px;
+}
+.call-crm-timeline-text{
+  font-size:13px;color:var(--pl-black);line-height:1.5;
+}
+
+/* ── Da Scoprire — Discovery Items ── */
+.call-discovery-list{
+  display:flex;flex-direction:column;
+  padding:0 24px 16px;
+}
+.call-discovery-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 0;
+  transition:all .3s ease;
+}
+/* Question mark indicator */
+.call-discovery-check{
+  width:16px;height:16px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;position:relative;
+  font-size:12px;font-weight:700;
+  color:var(--pl-gray-400);
+  transition:all .4s cubic-bezier(.22,1,.36,1);
+}
+.call-discovery-check::before{
+  content:'?';
+}
+.call-discovery-check::after{display:none;}
+/* Discovered state */
+.call-discovery-item.discovered .call-discovery-check{
+  color:var(--pl-green);
+  animation:discoveryPop .4s cubic-bezier(.22,1,.36,1);
+}
+.call-discovery-item.discovered .call-discovery-check::before{
+  content:'✓';
+}
+.call-discovery-label{
+  font-size:13px;color:var(--pl-gray-500);
+  font-weight:500;transition:color .3s ease;
+}
+.call-discovery-item.discovered .call-discovery-label{
+  color:var(--pl-black);font-weight:600;
+}
+
+/* ══════════════════════════════════════════
+   3B. CENTER — CALL HERO
+   ══════════════════════════════════════════ */
+.call-hero{
+  flex:1;display:flex;flex-direction:column;
+  min-width:0;background:#fff;
+  position:relative;
+}
+.call-hero-content{
+  flex:1;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:16px;
+  padding:40px 24px;
+}
+
+/* Large Avatar — circular, matches connecting screen */
+.call-hero-avatar{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:600;color:#fff;
+  flex-shrink:0;
+  position:relative;
+  letter-spacing:.02em;
+  user-select:none;
+  transition:box-shadow .4s ease;
+}
+/* Identity */
+.call-hero-identity{
+  display:flex;flex-direction:column;
+  align-items:center;gap:2px;
+  text-align:center;
+}
+.call-hero-name{
+  font-size:20px;font-weight:600;
+  color:var(--pl-black);letter-spacing:-.02em;
+}
+.call-hero-detail{
+  font-size:13px;color:var(--pl-gray-500);
+}
+
+/* Status */
+.call-hero-status{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--pl-gray-500);
+  font-weight:500;
+}
+.call-hero-status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--pl-green);
+  animation:callPulse 2s ease-in-out infinite;
+}
+.call-hero-timer{
+  font-variant-numeric:tabular-nums;
+  color:var(--pl-gray-400);
+}
+
+/* ── WAVEFORM — organic, modern ── */
+.call-waveform{
+  width:100%;max-width:420px;
+  padding:20px 0 8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.call-waveform-bars{
+  display:flex;align-items:center;justify-content:center;
+  gap:1.5px;height:52px;
+  width:100%;
+}
+.call-waveform-bars span{
+  display:block;
+  width:1.2px;
+  border-radius:1px;
+  background:color-mix(in srgb, var(--lead-color, var(--pl-blue)) 30%, transparent);
+  height:4px;
+  transition:height .12s ease-out, background .25s ease;
+}
+
+/* Silent state — subtle idle pulse */
+.call-waveform.silent .call-waveform-bars span{
+  height:4px;
+  background:color-mix(in srgb, var(--lead-color, var(--pl-blue)) 40%, transparent);
+  animation:waveIdle 3s ease-in-out infinite alternate;
+}
+.call-waveform.silent .call-waveform-bars span:nth-child(odd){animation-delay:.5s;}
+.call-waveform.silent .call-waveform-bars span:nth-child(3n){animation-delay:1s;}
+
+/* Speaking state — energetic wave */
+.call-waveform.speaking .call-waveform-bars span{
+  background:var(--lead-color, var(--pl-blue));
+  animation:waveBar 0.5s ease-in-out infinite alternate;
+}
+/* Bell-curve stagger: center bars taller, edges shorter */
+.call-waveform.speaking .call-waveform-bars span:nth-child(1){animation-delay:0s;animation-duration:.65s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(2){animation-delay:.05s;animation-duration:.55s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(3){animation-delay:.02s;animation-duration:.6s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(4){animation-delay:.08s;animation-duration:.5s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(5){animation-delay:.03s;animation-duration:.58s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(6){animation-delay:.1s;animation-duration:.48s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(7){animation-delay:.06s;animation-duration:.62s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(8){animation-delay:.01s;animation-duration:.52s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(9){animation-delay:.09s;animation-duration:.56s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(10){animation-delay:.04s;animation-duration:.44s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(11){animation-delay:.07s;animation-duration:.6s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(12){animation-delay:.02s;animation-duration:.5s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(13){animation-delay:.08s;animation-duration:.54s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(14){animation-delay:.05s;animation-duration:.58s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(15){animation-delay:.01s;animation-duration:.46s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(16){animation-delay:.07s;animation-duration:.62s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(17){animation-delay:.03s;animation-duration:.5s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(18){animation-delay:.09s;animation-duration:.56s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(19){animation-delay:.04s;animation-duration:.48s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(20){animation-delay:.06s;animation-duration:.6s}
+.call-waveform.speaking .call-waveform-bars span:nth-child(n+21){animation-delay:.05s;animation-duration:.52s}
+
+/* User speaking — lead color at lower opacity */
+.call-waveform.user-speaking .call-waveform-bars span{
+  background:color-mix(in srgb, var(--lead-color, var(--pl-blue)) 35%, transparent);
+  animation:waveBar 0.5s ease-in-out infinite alternate;
+}
+
+/* ── Text Input ── */
+.call-input-area{
+  display:none;padding:8px 24px 4px;flex-shrink:0;
+}
+.call-input-area.active{display:block;}
+.call-input-wrapper{
+  display:flex;gap:8px;align-items:center;
+  max-width:480px;margin:0 auto;
+}
+.call-input{
+  flex:1;padding:10px 14px;
+  border:1px solid var(--pl-gray-200);
+  border-radius:var(--pl-radius-sm);
+  font-size:14px;font-family:var(--pl-font);
+  color:var(--pl-black);background:var(--pl-gray-50);
+  outline:none;transition:border-color .2s ease,background .2s ease;
+}
+.call-input:focus{border-color:var(--pl-gray-400);background:#fff;}
+.call-send-btn{
+  width:38px;height:38px;border-radius:var(--pl-radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  border:none;cursor:pointer;
+  background:var(--pl-blue);color:#fff;
+  transition:background .15s ease;flex-shrink:0;
+}
+.call-send-btn:hover{background:#1d4ed8;}
+
+/* ── Controls Bar ── */
+.call-controls{
+  display:flex;align-items:center;justify-content:center;
+  gap:12px;padding:16px 24px;
+  border-top:1px solid var(--pl-gray-200);
+  background:#fff;flex-shrink:0;
+}
+.call-ctrl-btn{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--pl-gray-200);
+  background:#fff;color:var(--pl-gray-700);
+  cursor:pointer;transition:all .15s ease;
+}
+.call-ctrl-btn:hover{
+  background:var(--pl-gray-100);border-color:var(--pl-gray-300);
+}
+.call-ctrl-btn.active{
+  background:var(--pl-blue);color:#fff;border-color:var(--pl-blue);
+}
+.call-ctrl-btn.muted{
+  background:#fef2f2;color:var(--pl-red);border-color:#fecaca;
+}
+.call-ctrl-end{
+  background:#fef2f2;color:var(--pl-red);border-color:#fecaca;
+}
+.call-ctrl-end:hover{
+  background:#fee2e2;border-color:#fca5a5;
+}
+
+
+/* ══════════════════════════════════════════
+   4. CONNECTION STATUS
+   ══════════════════════════════════════════ */
+.call-connection-status{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:16px;
+  font-size:11px;font-weight:600;
+  letter-spacing:.01em;white-space:nowrap;
+  transition:all .3s ease;
+}
+.status-connecting{background:#fefce8;color:#a16207;}
+.status-connecting .status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#eab308;animation:callPulse 1.5s ease-in-out infinite;
+}
+.status-fallback{background:#fff7ed;color:#c2410c;}
+.status-fallback .status-dot{
+  width:6px;height:6px;border-radius:50%;background:#f97316;
+}
+.status-realtime{background:#f0fdf4;color:#15803d;}
+.status-realtime .status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--pl-green);animation:callPulse 2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════
+   5. ANIMATIONS
+   ══════════════════════════════════════════ */
+@keyframes callRingPulse{
+  0%{transform:scale(1);opacity:.6}
+  100%{transform:scale(1.8);opacity:0}
+}
+@keyframes callFadeIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes callPulse{
+  0%,100%{opacity:1}
+  50%{opacity:.4}
+}
+@keyframes discoveryPop{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.2)}
+  100%{transform:scale(1)}
+}
+@keyframes waveIdle{
+  0%{height:2px}
+  100%{height:6px}
+}
+@keyframes waveBar{
+  0%{height:4px}
+  100%{height:36px}
+}
+
+/* ══════════════════════════════════════════
+   6. SCROLLBARS
+   ══════════════════════════════════════════ */
+.call-sidebar::-webkit-scrollbar{width:4px;}
+.call-sidebar::-webkit-scrollbar-track{background:transparent;}
+.call-sidebar::-webkit-scrollbar-thumb{background:var(--pl-gray-300);border-radius:2px;}
+
+/* ══════════════════════════════════════════
+   7. RESPONSIVE
+   ══════════════════════════════════════════ */
+@media(max-width:1100px){
+  .call-sidebar{width:300px;}
+}
+@media(max-width:800px){
+  .call-body{flex-direction:column;}
+  .call-sidebar{
+    width:100%;border:none;
+    border-top:1px solid var(--pl-gray-200);
+    max-height:260px;
+  }
+}

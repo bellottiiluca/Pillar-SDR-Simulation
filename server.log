@@ -1,0 +1,77 @@
+🟢 Pillar SDR Simulation → http://localhost:3001
+   TTS: gpt-4o-mini-tts / voice: ash / character-prompted
+   📊 Recruiter Dashboard → http://localhost:3001/dashboard.html
+[Realtime] Creating session for marchetti, voice: cedar, prompt length: 12833
+[Realtime] Session created, token expires: 1783718100
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
+TTS proxy error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/luca/.gemini/antigravity/scratch/pillar-sdr-sim/server.js:40:22 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.openai.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.openai.com'
+  }
+}
