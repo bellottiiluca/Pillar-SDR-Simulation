@@ -969,11 +969,11 @@ async function triggerAutoReply(channel, userText) {
   }
 
   // Handle DM Phase Transitions after the AI's final block is displayed
-  if (channel === 'dm-sara' && (isHandoffTransition || replyCountPerChannel['dm-sara'] >= 3)) {
+  if (channel === 'dm-sara' && isHandoffTransition) {
     replyCountPerChannel['dm-sara'] = 999; // lock
     await wsDelay(2500);
     triggerSlackPostHandoff(currentLead);
-  } else if (channel === 'dm-marco' && (isHandoffTransition || replyCountPerChannel['dm-marco'] >= 3)) {
+  } else if (channel === 'dm-marco' && isHandoffTransition) {
     replyCountPerChannel['dm-marco'] = 999; // lock
     await wsDelay(1500);
     await showTyping(team.marco.name, 1500);

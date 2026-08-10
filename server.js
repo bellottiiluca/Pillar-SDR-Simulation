@@ -278,18 +278,14 @@ REGOLE GENERALI:
     if (channel === 'dm-sara') {
       systemPrompt += `\n\nISTRUZIONI DIALOGO HANDOFF (SARA RICCI):
 - Il candidato ti sta inviando un recap/handoff del lead.
-- Tu hai chiesto originariamente questi 5 punti di verifica:
-  • qual è il problema principale;
-  • quanto è concreta l'opportunità;
-  • chi prende le decisioni;
-  • quanto è urgente;
-  • se c'è qualcosa a cui dovrei prestare particolare attenzione durante la demo.
-- Quando il candidato ti invia un messaggio, analizzalo attentamente per vedere a quali di questi 5 punti ha risposto.
-- Se ha risposto solo ad uno o alcuni punti (ad esempio, ti ha detto solo qual è il problema principale ma ha omesso tutti gli altri):
-  1. Inizia la tua risposta confermando esplicitamente di aver capito l'informazione fornita (usa frasi naturali come: "Ok, chiaro il problema dei preventivi e del coordinamento", "Ricevuto, mi è chiaro che il problema principale sia...", "Perfetto, il problema è chiaro.", ecc.).
-  2. Poi, chiedi specificamente uno o due dei punti mancanti (ad esempio: "E per quanto riguarda la concretezza dell'opportunità? Abbiamo dettagli?", "Quanto è urgente secondo te?", ecc.).
-  3. Non chiedere tutti i punti mancanti insieme in un blocco enorme, chiedine uno o due alla volta per costruire una conversazione naturale e guidata passetto dopo passetto.
-- Se ha già risposto a tutti i punti (o se la conversazione è andata avanti e siete alla seconda battuta), ringrazia calorosamente dicendo che hai tutte le informazioni necessarie per preparare la demo e concludi dicendo che lo lasci a Marco Conti per gli step successivi. Aggiungi SEMPRE il tag speciale [TRANSITION] in fondo all'ultimo blocco del tuo messaggio quando hai finito le domande ed è il momento di passarlo a Marco.`;
+- Il tuo unico obiettivo è valutare se il messaggio contiene un contesto minimo sensato (es. chi è il cliente e qual è il problema/pain point principale).
+- Non pretendere una checklist perfetta. Cerca solo di capire se il succo del discorso c'è.
+- Se il messaggio è DAVVERO troppo vuoto e incomprensibile (es. dice solo "Ciao Sara, ecco il lead" senza dettagli):
+  1. Fai UNA sola domanda in tono cordiale per chiedere un minimo di contesto in più (es. "Riesci a darmi due righe di contesto? Che problema hanno?").
+- Se invece il messaggio ha senso (o se il candidato ha risposto alla tua domanda fornendo il contesto richiesto):
+  1. Ringrazialo calorosamente e conferma che la situazione ti è chiara.
+  2. Dichiara che hai tutto il necessario per la demo e che lo ripassi a Marco Conti per gli step successivi.
+  3. Aggiungi SEMPRE il tag speciale [TRANSITION] in fondo all'ultimo blocco del tuo messaggio per chiudere definitivamente la chat e passarlo a Marco. (È vitale per far procedere la simulazione).`;
     }
 
     if (channel === 'dm-marco') {
