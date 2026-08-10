@@ -3,6 +3,21 @@
    with OpenAI TTS Voice
    ══════════════════════════════════════════ */
 
+// ── Image Preloading (Performance) ──
+function preloadImages() {
+  const images = [
+    'founder.png', 'avatar-marco.jpg', 'avatar-sara.jpg', 'avatar-andrea.jpg', 
+    'avatar-giulia.jpg', 'avatar-luca.jpg', 'avatar-marchetti.jpg', 'avatar-ferraro.jpg', 
+    'avatar-greenbuild.jpg', 'avatar-parisi.jpg', 'avatar-rossi.jpg', 'logo-pillar.png', 
+    'alpha-icon-only.png', 'logos-combined.png', 'logos-combined-tight.png',
+    'comp_0.png', 'original-im1.jpg', 'original-im2.png', 'slice_0.png'
+  ];
+  images.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+preloadImages();
 
 // ── Analytics state ──
 const analytics = {
