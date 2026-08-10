@@ -195,12 +195,14 @@ function showConnectingScreen(lead) {
   // Third ring cycle
   setTimeout(() => {
     playRingSound();
-    
-    // Ora avviamo l'agente ElevenLabs a 3 secondi esatti.
-    // Dalle tue prove, la connessione impiega circa 2.5/3 secondi per attivarsi.
-    // In questo modo si sincronizzerà in modo impeccabile col secondo 6!
-    startElevenLabsCall(lead);
   }, 3000);
+
+  // Anticipate ElevenLabs connection to 1s to account for cloud lag
+  // Su Vercel la latenza è alta, partendo al secondo 1 diamo all'SDK 5 secondi di vantaggio
+  // per connettersi in background prima che appaia la UI (secondo 6).
+  setTimeout(() => {
+    startElevenLabsCall(lead);
+  }, 1000);
 
   // Connected state
   setTimeout(() => {
@@ -1147,7 +1149,7 @@ function checkQualCRMComplete(state) {
 
   const allComplete = state.pain && state.budget && state.dm
     && state.timeline && state.urgency && state.fit
-    && state.nextstep && state.notes;
+    && state.nextstep; // Note extra rese opzionali
 
   saveBtn.disabled = !allComplete;
 }

@@ -1482,50 +1482,44 @@ async function triggerSlackPostHandoff(lead) {
 
   // Message 1
   await showTyping(team.marco.name, 1000);
-  const m1 = createMsgHTML(team.marco, wsNow(), `Ottimo lavoro.`, { forceNewBlock: true }, 'dm-marco');
+  const m1 = createMsgHTML(team.marco, wsNow(), `Ottimo lavoro. 👏`, { forceNewBlock: true }, 'dm-marco');
   addMsgToChannel('dm-marco', m1, { sender: 'marco', senderName: team.marco.name, content: 'Ottimo lavoro.' });
   await wsDelay(1200);
 
   // Message 2
   await showTyping(team.marco.name, 1400);
-  const m2 = createMsgHTML(team.marco, wsNow(), `Hai completato tutte le attività operative della giornata. 👏`, {}, 'dm-marco');
+  const m2 = createMsgHTML(team.marco, wsNow(), `Hai completato tutte le attività operative della giornata.`, {}, 'dm-marco');
   addMsgToChannel('dm-marco', m2, { sender: 'marco', senderName: team.marco.name, content: 'Tutte le attività completate.' });
   await wsDelay(1200);
 
   // Message 3
   await showTyping(team.marco.name, 1200);
-  const m3 = createMsgHTML(team.marco, wsNow(), `Prima di chiudere però vorrei chiederti una cosa.`, {}, 'dm-marco');
+  const m3 = createMsgHTML(team.marco, wsNow(), `Prima di proseguire, vorrei chiederti una cosa.`, {}, 'dm-marco');
   addMsgToChannel('dm-marco', m3, { sender: 'marco', senderName: team.marco.name, content: 'Vorrei chiederti una cosa.' });
   await wsDelay(1500);
 
   // Message 4
-  await showTyping(team.marco.name, 2000);
-  const m4 = createMsgHTML(team.marco, wsNow(), `Essendo una startup miglioriamo continuamente il nostro modo di lavorare.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m4, { sender: 'marco', senderName: team.marco.name, content: 'Miglioriamo continuamente.' });
+  await showTyping(team.marco.name, 2400);
+  const m4 = createMsgHTML(team.marco, wsNow(), `Hai appena lavorato sulla pipeline inbound, gestito una discovery call, aggiornato la qualification e preparato l’handoff per l’Account Executive.`, {}, 'dm-marco');
+  addMsgToChannel('dm-marco', m4, { sender: 'marco', senderName: team.marco.name, content: 'Hai usato tutto il nostro processo.' });
   await wsDelay(1200);
 
   // Message 5
-  await showTyping(team.marco.name, 2400);
-  const m5 = createMsgHTML(team.marco, wsNow(), `Hai appena utilizzato il nostro CRM, gestito una discovery call, compilato la qualification e preparato l'handoff per l'Account Executive.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m5, { sender: 'marco', senderName: team.marco.name, content: 'Hai usato tutto il nostro processo.' });
+  await showTyping(team.marco.name, 2000);
+  const m5 = createMsgHTML(team.marco, wsNow(), `Ora che hai visto l’intero processo dall’interno, c’è qualcosa che cambieresti o miglioreresti nel modo in cui lavoriamo?`, {}, 'dm-marco');
+  addMsgToChannel('dm-marco', m5, { sender: 'marco', senderName: team.marco.name, content: 'Cosa miglioreresti?' });
   await wsDelay(1200);
 
   // Message 6
-  await showTyping(team.marco.name, 1000);
-  const m6 = createMsgHTML(team.marco, wsNow(), `Mi interessa capire il tuo punto di vista.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m6, { sender: 'marco', senderName: team.marco.name, content: 'Il tuo punto di vista.' });
+  await showTyping(team.marco.name, 1500);
+  const m6 = createMsgHTML(team.marco, wsNow(), `Pensa a ciò che hai appena fatto e indicami fino a tre miglioramenti concreti che introdurresti, spiegandomi brevemente perché.`, {}, 'dm-marco');
+  addMsgToChannel('dm-marco', m6, { sender: 'marco', senderName: team.marco.name, content: 'Tre miglioramenti concreti.' });
   await wsDelay(1500);
 
   // Message 7
-  await showTyping(team.marco.name, 2200);
-  const m7 = createMsgHTML(team.marco, wsNow(), `Se iniziassi a lavorare con noi lunedì mattina, quali sarebbero le prime cose che proveresti a migliorare nel nostro processo commerciale?`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m7, { sender: 'marco', senderName: team.marco.name, content: 'Cosa miglioreresti?' });
-  await wsDelay(1200);
-
-  // Message 8
-  await showTyping(team.marco.name, 1400);
-  const m8 = createMsgHTML(team.marco, wsNow(), `Non cerco risposte perfette.<br>Mi interessa capire come osservi un processo e come ragioni.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m8, { sender: 'marco', senderName: team.marco.name, content: 'Come ragioni.' });
+  await showTyping(team.marco.name, 1800);
+  const m7 = createMsgHTML(team.marco, wsNow(), `Non cerco una risposta specifica: mi interessa capire cosa hai osservato, quali opportunità di miglioramento hai individuato e come ragioni.`, {}, 'dm-marco');
+  addMsgToChannel('dm-marco', m7, { sender: 'marco', senderName: team.marco.name, content: 'Come ragioni.' });
 
   // Bind builder composer
   bindBuilderComposer(lead);
@@ -1695,13 +1689,11 @@ async function triggerFounderReview() {
 
   // Intro messages — one by one
   const introLines = [
-    'Ciao! 👋',
-    'Ho seguito tutta la tua simulazione.',
-    'Prima di salutarci vorrei dedicare qualche minuto a capire come hai vissuto questa esperienza.',
-    'Per me non conta soltanto il risultato finale.',
-    'Mi interessa soprattutto il modo in cui ragioni quando prendi decisioni.',
-    'Non esistono risposte giuste o sbagliate.',
-    'Rispondi semplicemente nel modo più autentico possibile.',
+    `Ciao ${candidateMember.name.split(' ')[0]}! 👋`,
+    'Ho seguito la tua simulazione e prima di chiudere vorrei confrontarmi con te su alcune delle scelte che hai fatto.',
+    'Hai avuto modo di vedere buona parte del flusso inbound, dalla gestione dei lead fino al passaggio all’Account Executive.',
+    'Mi interessa capire come hai ragionato, cosa hai imparato durante il percorso e come guardi adesso ad alcune delle tue decisioni.',
+    'Partiamo da una cosa che ho notato…'
   ];
 
   for (let i = 0; i < introLines.length; i++) {
@@ -1732,10 +1724,10 @@ function buildAnalyticsContext() {
     parts.push(`Qualification compilata — Problema: ${q.problem || 'N/A'}, Decision maker: ${q.decisionMaker || 'N/A'}, Budget: ${q.budget || 'N/A'}, Tempistiche: ${q.timeline || 'N/A'}, Prossimo step: ${q.nextStep || 'N/A'}`);
   }
   if (analytics.handoffMessage) {
-    parts.push(`Handoff a Sara Ricci (Account Executive): "${analytics.handoffMessage.text?.substring(0, 200)}..."`);
+    parts.push(`Handoff a Sara Ricci (Account Executive): "${analytics.handoffMessage.text || ''}"`);
   }
   if (analytics.builderMindset) {
-    parts.push(`Builder Mindset (miglioramenti proposti): "${analytics.builderMindset.text?.substring(0, 200)}..."`);
+    parts.push(`Builder Mindset (miglioramenti proposti): "${analytics.builderMindset.text || ''}"`);
   }
   if (analytics.candidateMessages && analytics.candidateMessages.length) {
     parts.push(`Il candidato ha inviato ${analytics.candidateMessages.length} messaggi nei canali Slack durante la simulazione.`);
