@@ -104,6 +104,11 @@ const sessions = [mockGood];
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(join(__dirname, '.')));
 
+// Fallback esplicito per Vercel
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
+});
+
 // ══════════════════════════════════════════════════════════
 // VOICE CHARACTER PROMPT (for TTS)
 // ══════════════════════════════════════════════════════════
