@@ -473,7 +473,7 @@ function createMsgHTML(member, time, html, opts = {}, channel = null) {
   } else {
     msg.className = 'ws-msg';
     const avatarHTML = member.avatar 
-      ? `<img src="${member.avatar}" alt="${member.name}">` 
+      ? `<img decoding="sync" src="${member.avatar}" alt="${member.name}">` 
       : member.initials;
     const avatarStyle = member.avatar ? '' : `style="background:${member.color}"`;
     msg.innerHTML = `
@@ -708,7 +708,7 @@ async function runWelcomeSequence() {
   ctaWrapper.id = 'ws-cta-wrapper';
   ctaWrapper.innerHTML = `
     <div class="ws-cta-banner">
-      <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+      <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
       <button class="ws-cta-btn" id="ws-cta-open-crm">
         Apri CRM →
       </button>
@@ -989,7 +989,7 @@ async function triggerAutoReply(channel, userText) {
     ctaWrapper.className = 'ws-cta-wrapper';
     ctaWrapper.innerHTML = `
       <div class="ws-cta-banner">
-        <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+        <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
           <button class="ws-cta-btn" id="${ctaId}">
           Continua con Gabriel →
         </button>
@@ -1137,7 +1137,7 @@ async function triggerSlackCallNudge(topLead) {
   ctaWrapper.className = 'ws-cta-wrapper';
   ctaWrapper.innerHTML = `
     <div class="ws-cta-banner">
-      <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+      <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
       <button class="ws-cta-btn" id="${ctaId}">
         Avvia Chiamata →
       </button>
@@ -1206,7 +1206,7 @@ async function triggerSlackPostDiscoveryCall(lead) {
   ctaWrapper.className = 'ws-cta-wrapper';
   ctaWrapper.innerHTML = `
     <div class="ws-cta-banner">
-      <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+      <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
       <button class="ws-cta-btn" id="${ctaId}">
         Aggiorna CRM →
       </button>
@@ -1278,7 +1278,7 @@ async function triggerSlackPostQualification(lead) {
   ctaWrapper.className = 'ws-cta-wrapper';
   ctaWrapper.innerHTML = `
     <div class="ws-cta-banner">
-      <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+      <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
       <button class="ws-cta-btn" id="${ctaId}">
         Apri chat con Sara →
       </button>
@@ -1650,7 +1650,7 @@ function bindBuilderComposer(lead) {
       ctaWrapper.className = 'ws-cta-wrapper';
       ctaWrapper.innerHTML = `
         <div class="ws-cta-banner">
-          <img src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
+          <img decoding="sync" src="pillar-icon-only.png" alt="Pillar" style="height:18px;width:auto;border-radius:3px;">
           <button class="ws-cta-btn" id="${ctaId}">
             Continua con Gabriel →
           </button>

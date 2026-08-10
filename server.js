@@ -102,7 +102,10 @@ const mockGood = {
 const sessions = [mockGood];
 
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static(join(__dirname, '.')));
+app.use(express.static(join(__dirname, '.'), {
+  maxAge: '1y',
+  immutable: true
+}));
 
 // Fallback esplicito per Vercel
 app.get('/', (req, res) => {

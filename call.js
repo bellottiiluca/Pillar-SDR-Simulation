@@ -1003,7 +1003,7 @@ function renderQualLeadList(selectedLead) {
     card.style.animationDelay = `${index * 0.05}s`;
 
     card.innerHTML = `
-      <div class="crm-lead-avatar"><img src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
+      <div class="crm-lead-avatar"><img decoding="sync" src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
       <div class="crm-lead-info">
         <span class="crm-lead-name">${lead.contact.name}</span>
         <span class="crm-lead-role">${lead.contact.role}</span>
@@ -1028,7 +1028,7 @@ function renderQualLeadHeader(lead) {
 
   container.innerHTML = `
     <div class="crm-detail-contact-info">
-      <div class="crm-detail-avatar"><img src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
+      <div class="crm-detail-avatar"><img decoding="sync" src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
       <div class="crm-detail-names">
         <span class="crm-detail-contact-name">${lead.contact.name}</span>
         <span class="crm-detail-contact-role">${lead.contact.role}</span>

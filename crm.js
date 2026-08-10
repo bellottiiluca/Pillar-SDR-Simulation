@@ -275,7 +275,7 @@ function renderLeadList(filter = '') {
     card.dataset.leadId = lead.id;
     card.innerHTML = `
       <div class="crm-lead-priority-badge${priorityIndex >= 0 ? ' visible' : ''}">${priorityIndex >= 0 ? priorityIndex + 1 : ''}</div>
-      <div class="crm-lead-avatar"><img src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
+      <div class="crm-lead-avatar"><img decoding="sync" src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
       <div class="crm-lead-info">
         <span class="crm-lead-name">${lead.contact.name}</span>
         <span class="crm-lead-role">${lead.contact.role}</span>
@@ -374,7 +374,7 @@ function renderLeadDetail(lead) {
     <!-- Header -->
     <div class="crm-detail-header">
       <div class="crm-detail-contact-info">
-        <div class="crm-detail-avatar"><img src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
+        <div class="crm-detail-avatar"><img decoding="sync" src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
         <div class="crm-detail-names">
           <span class="crm-detail-contact-name">${lead.contact.name}</span>
           <span class="crm-detail-contact-role">${lead.contact.role}</span>
@@ -611,7 +611,7 @@ function renderPrioritySlots() {
         .toUpperCase();
       slot.innerHTML = `
         <span class="crm-priority-slot-badge">${i + 1}</span>
-        <div class="crm-priority-slot-avatar"><img src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
+        <div class="crm-priority-slot-avatar"><img decoding="sync" src="avatar-${lead.id}.jpg" alt="${lead.contact.name}"></div>
         <div class="crm-priority-slot-content">
           <span class="crm-priority-slot-company">${lead.contact.name}</span>
           <span class="crm-priority-slot-contact">${lead.company}</span>
