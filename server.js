@@ -129,7 +129,22 @@ app.post('/api/notify-start', async (req, res) => {
       return res.status(200).json({ success: true, mock: true });
     }
 
-    let templateStr = fs.readFileSync(join(__dirname, 'templates/welcomeEmail.html'), 'utf-8');
+    const templatePath = join(process.cwd(), 'templates', 'welcomeEmail.html');
+    
+    if (!fs.existsSync(templatePath)) {
+      console.error('ERROR: Template not found at', templatePath);
+      // Fallback: se hanno caricato il file per errore nella root invece che nella cartella templates
+      const fallbackPath = join(process.cwd(), 'welcomeEmail.html');
+      if (fs.existsSync(fallbackPath)) {
+        console.log('Template found at root instead of templates/');
+        var templateStr = fs.readFileSync(fallbackPath, 'utf-8');
+      } else {
+        return res.status(500).json({ error: 'Template file missing on Vercel' });
+      }
+    } else {
+      var templateStr = fs.readFileSync(templatePath, 'utf-8');
+    }
+
     templateStr = templateStr.replace(/{{firstName}}/g, firstName)
                              .replace(/{{simulationUrl}}/g, 'https://alpha.careers')
                              .replace(/{{supportEmail}}/g, 'hello@alpha.careers');
@@ -149,8 +164,8 @@ app.post('/api/notify-start', async (req, res) => {
     console.log(`✉️ [EMAIL SENT] Benvenuto inviato a ${email}`);
     res.status(200).json({ success: true, data });
   } catch (err) {
-    console.error('Email error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Email error on Vercel:', err.message, err.stack);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
