@@ -165,6 +165,30 @@ async function runBoot() {
     document.getElementById('cand-name').focus();
   }, { once: true });
 
+  // Form Validation Logic
+  const candName = document.getElementById('cand-name');
+  const candSurname = document.getElementById('cand-surname');
+  const candEmail = document.getElementById('cand-email');
+  const privacyCheck = document.getElementById('privacy-check');
+  const submitBtn = form.querySelector('.btn-candidate-submit');
+
+  function checkFormValidity() {
+    const isValid = candName.value.trim() !== '' &&
+                    candSurname.value.trim() !== '' &&
+                    candEmail.checkValidity() &&
+                    candEmail.value.trim() !== '' &&
+                    privacyCheck.checked;
+    
+    submitBtn.disabled = !isValid;
+  }
+
+  [candName, candSurname, candEmail, privacyCheck].forEach(el => {
+    el.addEventListener('input', checkFormValidity);
+    el.addEventListener('change', checkFormValidity);
+  });
+
+
+
   let formSubmitted = false;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

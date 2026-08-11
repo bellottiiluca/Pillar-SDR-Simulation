@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=12" />
   <link rel="stylesheet" href="crm.css?v=8" />
   <link rel="stylesheet" href="call.css?v=8" />
 
@@ -72,7 +72,7 @@
         </div>
         <div class="boot-chip">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          8 fasi
+          6 attività
         </div>
       </div>
 
@@ -109,7 +109,7 @@
         </div>
 
         <h3 class="candidate-form-title">Inserisci i tuoi dati</h3>
-        <p class="candidate-form-sub">per personalizzare la simulazione</p>
+        <p class="candidate-form-sub">per iniziare la simulazione</p>
 
         <form id="candidate-form" autocomplete="off">
           <div class="form-row">
@@ -126,7 +126,44 @@
             <label for="cand-email">Email</label>
             <input type="email" id="cand-email" placeholder="mario.rossi@email.com" required>
           </div>
-          <button type="submit" class="btn-candidate-submit">
+
+          <div class="privacy-disclosure-box">
+            <button type="button" class="privacy-accordion-btn" id="privacy-accordion-btn" aria-expanded="false" aria-controls="privacy-accordion-body">
+              <span class="privacy-title-text">Privacy e utilizzo dell’intelligenza artificiale</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="privacy-chevron" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="privacy-accordion-body" class="privacy-accordion-body" aria-hidden="true">
+              <div class="privacy-body-content">
+                <p>Prima di iniziare, vogliamo spiegarti in modo chiaro come verranno trattati i dati generati durante la simulazione.</p>
+                <p>Nel corso dell’esperienza raccoglieremo le tue risposte, decisioni e interazioni, inclusi l’audio e la trascrizione della discovery call.</p>
+                <p>Queste informazioni saranno analizzate anche attraverso sistemi di intelligenza artificiale per valutare la tua performance nella simulazione e generare punteggi, evidenze e raccomandazioni a supporto del processo di selezione.</p>
+                <p>L’intelligenza artificiale non prende autonomamente decisioni di assunzione o esclusione. I risultati vengono messi a disposizione del team di selezione, che mantiene la responsabilità della valutazione e delle decisioni sul candidato.</p>
+                <p>Per maggiori informazioni sui dati trattati, sulle finalità e modalità del trattamento, sui tempi di conservazione, sui soggetti coinvolti e sui tuoi diritti, consulta l’<a href="#" class="privacy-link">Informativa sul trattamento dei dati personali</a>.</p>
+              </div>
+            </div>
+            <label class="privacy-checkbox-wrapper">
+              <input type="checkbox" id="privacy-check" required>
+              <span class="privacy-checkbox-text">Dichiaro di aver preso visione dell’Informativa sul trattamento dei dati personali.</span>
+            </label>
+          </div>
+          
+          <script>
+            // Inline logic to guarantee execution regardless of app.js caching
+            document.addEventListener('DOMContentLoaded', function() {
+              var pBtn = document.getElementById('privacy-accordion-btn');
+              var pBody = document.getElementById('privacy-accordion-body');
+              if (pBtn && pBody) {
+                pBtn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  var isExpanded = pBtn.getAttribute('aria-expanded') === 'true';
+                  pBtn.setAttribute('aria-expanded', !isExpanded);
+                  pBody.setAttribute('aria-hidden', isExpanded);
+                });
+              }
+            });
+          </script>
+
+          <button type="submit" class="btn-candidate-submit" disabled>
             <span class="btn-start-inner">
               Avvia simulazione
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
