@@ -173,13 +173,7 @@ async function runBoot() {
   const submitBtn = form.querySelector('.btn-candidate-submit');
 
   function checkFormValidity() {
-    const isValid = candName.value.trim() !== '' &&
-                    candSurname.value.trim() !== '' &&
-                    candEmail.checkValidity() &&
-                    candEmail.value.trim() !== '' &&
-                    privacyCheck.checked;
-    
-    submitBtn.disabled = !isValid;
+    submitBtn.disabled = !form.checkValidity();
   }
 
   [candName, candSurname, candEmail, privacyCheck].forEach(el => {
