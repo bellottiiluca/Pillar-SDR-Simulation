@@ -201,6 +201,13 @@ async function runBoot() {
     analytics.candidate = { firstName, lastName, email };
     candidateName = firstName;
 
+    // Send Welcome Email (Fire and forget)
+    fetch('/api/notify-start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, email })
+    }).catch(err => console.warn('Failed to send welcome email', err));
+
     // Personalize first slide
     founderSlides[0].text = `Ciao ${firstName}, sono Gabriel. Benvenuto in Pillar.`;
     founderSlides[0].html = `Ciao <strong>${firstName}</strong>, sono <strong>Gabriel</strong>. Benvenuto in <strong>Pillar</strong>.`;

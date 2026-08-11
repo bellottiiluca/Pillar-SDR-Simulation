@@ -4,11 +4,13 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import { Resend } from 'resend';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3001;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ══════════════════════════════════════════════════════════
 // IN-MEMORY SESSION STORAGE (Recruiter Dashboard)
@@ -110,6 +112,46 @@ app.use(express.static(join(__dirname, '.'), {
 // Fallback esplicito per Vercel
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
+});
+
+// ══════════════════════════════════════════════════════════
+// EMAIL NOTIFICATION ENDPOINT
+// ══════════════════════════════════════════════════════════
+app.post('/api/notify-start', async (req, res) => {
+  try {
+    const { firstName, email } = req.body;
+    if (!firstName || !email) {
+      return res.status(400).json({ error: 'firstName and email are required' });
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      console.log(`✉️ [MOCK EMAIL] Simulazione invio email a ${email} per ${firstName}`);
+      return res.status(200).json({ success: true, mock: true });
+    }
+
+    let templateStr = fs.readFileSync(join(__dirname, 'templates/welcomeEmail.html'), 'utf-8');
+    templateStr = templateStr.replace(/{{firstName}}/g, firstName)
+                             .replace(/{{simulationUrl}}/g, 'https://alpha.careers')
+                             .replace(/{{supportEmail}}/g, 'hello@alpha.careers');
+
+    const { data, error } = await resend.emails.send({
+      from: 'Alpha × Pillar <hello@alpha.careers>',
+      to: email,
+      subject: 'Benvenuto nella simulazione SDR di Pillar',
+      html: templateStr,
+    });
+
+    if (error) {
+      console.error('Error sending email:', error);
+      return res.status(500).json({ error });
+    }
+
+    console.log(`✉️ [EMAIL SENT] Benvenuto inviato a ${email}`);
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error('Email error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // ══════════════════════════════════════════════════════════
