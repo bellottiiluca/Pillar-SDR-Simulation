@@ -372,10 +372,6 @@ html,body{
   cursor: pointer;
   color: var(--pl-black);
   text-align: left;
-  transition: opacity 0.2s ease;
-}
-.privacy-accordion-btn:hover {
-  opacity: 0.8;
 }
 .privacy-accordion-btn:focus-visible {
   outline: 2px solid var(--pl-purple-500);
