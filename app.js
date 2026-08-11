@@ -651,11 +651,23 @@ function prePopulateChannels() {
   const s1 = createMsgHTML(team.marco, '08:30', 'Aggiornamento pipeline: questa settimana abbiamo <em>12 deal attivi</em> e 3 in fase di closing.', {}, 'sales');
   const s2 = createMsgHTML(team.sara, '08:35', 'Ho un follow-up con Costruzioni Romani alle 14:00. Se qualcuno ha info sul loro volume cantieri, mi faccia sapere.', {}, 'sales');
   const s3 = createMsgHTML(team.marco, '08:40', 'Reminder: obiettivo settimanale è <em>8 demo prenotate</em>. Siamo a 5. Spingiamo 🔥', {}, 'sales');
-  channelMessages.sales.push(s1, s2, s3);
+  
+  const pdfContent = `Lascio qui una panoramica aggiornata di Pillar, con le principali funzionalità e una sintesi di come si collegano tra loro. Così rimane a disposizione del team 👍
+<a href="Pillar%20Product%20Overview.pdf" target="_blank" class="ws-file-attachment">
+  <div class="ws-file-icon">PDF</div>
+  <div class="ws-file-info">
+    <div class="ws-file-name">Pillar — Product Overview.pdf</div>
+    <div class="ws-file-meta">Documento • 168 KB</div>
+  </div>
+</a>`;
+  const s4 = createMsgHTML(team.sara, '08:48', pdfContent, {}, 'sales');
+
+  channelMessages.sales.push(s1, s2, s3, s4);
   channelHistory.sales.push(
     { sender: 'marco', senderName: team.marco.name, content: 'Aggiornamento pipeline: questa settimana abbiamo 12 deal attivi e 3 in fase di closing.' },
     { sender: 'sara', senderName: team.sara.name, content: 'Ho un follow-up con Costruzioni Romani alle 14:00. Se qualcuno ha info sul loro volume cantieri, mi faccia sapere.' },
-    { sender: 'marco', senderName: team.marco.name, content: 'Reminder: obiettivo settimanale è 8 demo prenotate. Siamo a 5. Spingiamo 🔥' }
+    { sender: 'marco', senderName: team.marco.name, content: 'Reminder: obiettivo settimanale è 8 demo prenotate. Siamo a 5. Spingiamo 🔥' },
+    { sender: 'sara', senderName: team.sara.name, content: 'Lascio qui una panoramica aggiornata di Pillar, con le principali funzionalità e una sintesi di come si collegano tra loro. Così rimane a disposizione del team 👍 [Allegato: Pillar — Product Overview.pdf]' }
   );
 
   // #inbound — lead context

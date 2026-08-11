@@ -720,6 +720,68 @@ html,body{
 }
 .ws-msg-text em{font-style:normal;font-weight:600;color:var(--pl-black)}
 
+/* Slack File Attachment */
+.ws-file-attachment {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(29, 28, 29, 0.13);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  max-width: 360px;
+  background: #fff;
+  transition: background 0.1s ease;
+  text-decoration: none;
+  gap: 12px;
+}
+.ws-file-attachment:hover {
+  background: #f8f8f8;
+}
+.ws-file-icon {
+  width: 28px;
+  height: 34px;
+  background-color: #F40F0F;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+/* Folded corner effect */
+.ws-file-icon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-width: 0 8px 8px 0;
+  border-style: solid;
+  border-color: #fff #fff rgba(0,0,0,0.2) rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.1);
+  border-radius: 0 4px 0 4px;
+}
+.ws-file-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ws-file-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1164A3; /* Slack link blue */
+}
+.ws-file-attachment:hover .ws-file-name {
+  text-decoration: underline;
+}
+.ws-file-meta {
+  font-size: 12px;
+  color: rgba(29, 28, 29, 0.7);
+  margin-top: 1px;
+}
 /* Grouped consecutive messages (Slack style) */
 .ws-msg-grouped{
   padding:3px 0;
