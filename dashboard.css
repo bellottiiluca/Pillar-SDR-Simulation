@@ -9,16 +9,16 @@
 /* ── Design Tokens ── */
 :root {
   /* Core Palette */
-  --db-bg: #f8fafc;
+  --db-bg: #ffffff;
   --db-bg-pure: #ffffff;
   --db-surface: #ffffff;
   --db-surface-raised: #ffffff;
-  --db-surface-hover: #f1f5f9;
-  --db-surface-active: #e2e8f0;
+  --db-surface-hover: #f8f8f8;
+  --db-surface-active: #ebebeb; /* Grigio intermedio, né troppo slavato né troppo forte */
 
   /* Borders */
-  --db-border: #e2e8f0;
-  --db-border-light: #f1f5f9;
+  --db-border: #e4e4e7; /* Più marcato, stile Resend / Zinc-200 */
+  --db-border-light: #f4f4f5;
   --db-border-focus: #2563eb;
 
   /* Text */
@@ -114,13 +114,15 @@ body {
 /* ── Sidebar ── */
 .app-sidebar {
   width: 260px;
-  background: #f9f9f9; /* Match OpenAI sidebar background */
+  background: #ffffff; /* Total white like Resend */
   border-right: 1px solid var(--db-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 10;
-  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.5s ease;
+  overflow: hidden; /* Fondamentale per mantenere fluida l'animazione di width senza che i contenuti strabordino durante la transizione */
+  /* Animazione pazzesca: Ease-Out-Expo, velocissima all'inizio, morbidissima e lenta alla fine. Tipica delle dashboard premium */
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.6s ease;
 }
 
 .app-sidebar.collapsed {
@@ -131,15 +133,15 @@ body {
   width: 0;
   opacity: 0;
   border-right-color: transparent;
-  overflow: hidden;
+  /* overflow: hidden rimosso da qui perché ora è globale sulla sidebar */
 }
 
 .app-sidebar-header {
   height: 60px; /* Match typical narrow headers */
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 12px;
+  padding: 0 22px;
+  gap: 10px; /* 22px padding + 24px logo + 10px gap = 56px (Allineamento asse centrale icone e testo) */
 }
 
 .app-sidebar.collapsed .app-sidebar-header {
@@ -178,17 +180,31 @@ body {
   border: none;
   color: var(--db-text-secondary);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 6px;
+  border-radius: 50%; /* Completamente tondo, coerente col menu */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 
 .sidebar-toggle-btn:hover {
-  background: var(--db-surface-active);
+  background: var(--db-surface-hover); /* Stesso grigio seta del menu */
   color: var(--db-text);
+}
+
+/* Micro-animazione pazzesca: la linea interna si sposta per indicare la chiusura */
+.sidebar-toggle-btn svg line {
+  transition: transform 0.3s var(--db-ease-out);
+}
+
+.sidebar-toggle-btn:hover svg line {
+  transform: translateX(-2px);
+}
+
+/* Quando è già chiusa, l'hover suggerisce l'apertura spostandosi a destra */
+.app-sidebar.collapsed .sidebar-toggle-btn:hover svg line {
+  transform: translateX(2px);
 }
 
 .app-sidebar.collapsed .sidebar-toggle-btn {
@@ -213,8 +229,8 @@ body {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  border-radius: 8px;
-  color: var(--db-text);
+  border-radius: 9999px; /* Effetto a pillola, completamente stondato */
+  color: var(--db-text); /* Tutto nero come prima */
   font-weight: 500;
   font-size: 14px;
   text-decoration: none;
@@ -223,17 +239,50 @@ body {
 }
 
 .nav-item:hover {
-  background: var(--db-surface-active);
+  background: var(--db-surface-hover);
 }
 
 .nav-item.active {
   background: var(--db-surface-active);
-  font-weight: 600;
+  /* Niente font-weight: 600, Resend mantiene lo stesso peso per pulizia */
 }
 
 .nav-item svg {
-  opacity: 0.7;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
+  transition: transform 0.3s var(--db-ease-out), opacity 0.2s;
+}
+
+/* ── Micro-animazioni ultra-premium (stile Resend/Linear) ── */
+
+/* 1. Impostazioni: rotazione classica morbida */
+.nav-item:hover .icon-settings {
+  transform: rotate(60deg);
+}
+
+/* Setup transizioni per gli elementi interni agli SVG */
+.icon-dashboard rect,
+.icon-candidates path,
+.icon-candidates circle {
+  transition: transform 0.3s var(--db-ease-out), opacity 0.3s var(--db-ease-out);
+}
+
+/* 2. Dashboard (Griglia): i 4 quadratini si espandono verso l'esterno creando respiro */
+.nav-item:hover .icon-dashboard rect:nth-child(1) { transform: translate(-1.5px, -1.5px); }
+.nav-item:hover .icon-dashboard rect:nth-child(2) { transform: translate(1.5px, -1.5px); }
+.nav-item:hover .icon-dashboard rect:nth-child(3) { transform: translate(1.5px, 1.5px); }
+.nav-item:hover .icon-dashboard rect:nth-child(4) { transform: translate(-1.5px, 1.5px); }
+
+/* 3. Confronta (Candidati): l'omino in primo piano sale, quello dietro sfuma per dare tridimensionalità */
+.nav-item:hover .icon-candidates > *:nth-child(1),
+.nav-item:hover .icon-candidates > *:nth-child(2) {
+  transform: translateY(-1.5px);
+}
+.nav-item:hover .icon-candidates > *:nth-child(3),
+.nav-item:hover .icon-candidates > *:nth-child(4) {
+  opacity: 0.5;
+  transform: translateX(1.5px);
 }
 
 .nav-item.active svg {
@@ -253,34 +302,45 @@ body {
   padding: 0;
   width: 36px;
   height: 36px;
-  justify-content: center;
-  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px; /* Mantiene la forma a cerchio/pillola per evitare scatti nell'animazione */
+}
+
+/* Assicuriamoci che l'icona non subisca strane regole di margine */
+.app-sidebar.collapsed .nav-item svg {
+  margin: 0;
 }
 
 .app-sidebar-footer {
-  padding: 16px 16px 24px 16px;
-  border-top: 1px solid var(--db-border-light);
+  padding: 16px 16px 24px 20px;
+  /* Resend non ha bordo superiore qui, è un design flat */
 }
 
 .sidebar-user {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px; /* 20px padding + 28px avatar + 8px gap = 56px (Testo allineato) */
   cursor: pointer;
   overflow: hidden;
+  color: var(--db-text);
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--db-text);
-  color: var(--db-bg-pure);
+  /* Il trucco magico: un gradiente che parte grigio e finisce bianco, 
+     unito a un'ombra interna per dare l'effetto tridimensionale "incavato" */
+  background: linear-gradient(135deg, #e4e4e7 0%, #ffffff 100%);
+  border: 1px solid #e4e4e7;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--db-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   flex-shrink: 0;
 }
 
@@ -289,6 +349,7 @@ body {
   flex-direction: column;
   white-space: nowrap;
   transition: opacity 0.2s;
+  overflow: hidden; /* Fondamentale per far funzionare l'ellipsis interno */
 }
 
 .app-sidebar.collapsed .user-info {
@@ -303,7 +364,7 @@ body {
 
 .user-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--db-text);
 }
 
@@ -315,12 +376,57 @@ body {
 /* ── Main Content Area ── */
 .app-main {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll; /* Forza sempre lo spazio per la scrollbar per evitare layout shift */
+  scrollbar-gutter: stable; /* Supporto moderno per evitare shift visivi */
   position: relative;
 }
 
-.crm-breadcrumb-top {
-  display: none;
+.app-topbar {
+  height: 60px; /* Stessa identica altezza del sidebar-header */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--db-border); /* Continuità della linea orizzontale marcata */
+  background: var(--db-bg-pure);
+}
+
+.app-topbar.no-border {
+  border-bottom: none;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* Spazio tra Docs e il bottone */
+}
+
+.topbar-link {
+  color: var(--db-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.topbar-link:hover {
+  color: var(--db-text);
+}
+
+.topbar-help-btn {
+  background: var(--db-surface-hover); /* Sfondo grigio chiarissimo */
+  border: 1px solid var(--db-border); /* Bordo sottile grigio visibile */
+  color: var(--db-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px; /* Padding omogeneo essendo senza H */
+  border-radius: 9999px; /* Forma a pillola perfetta */
+  transition: all 0.2s;
+}
+
+.topbar-help-btn:hover {
+  background: var(--db-surface-active); /* Hover leggermente più scuro */
 }
 
 /* ══════════════════════════════════════════
@@ -329,14 +435,14 @@ body {
 .db-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 40px 32px 80px 32px;
+  padding: 24px 32px 80px 32px; /* Allineamento millimetrico ricalcolato per il font a 24px: il centro del testo cade esattamente a metà dell'icona (96px dall'alto) */
 }
 
 /* ══════════════════════════════════════════
    ANIMATIONS
    ══════════════════════════════════════════ */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
@@ -365,6 +471,7 @@ body {
 
 .view-section {
   display: block;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Stagger animation for children */
@@ -382,12 +489,14 @@ body {
   margin-bottom: 32px;
 }
 .overview-title {
-  font-family: var(--db-font-display);
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--db-text);
-  letter-spacing: -0.04em;
+  margin-top: 0;
+  font-family: var(--db-font); /* Resend usa il font base (Inter/SF Pro) per questi titoli, non font display come Space Grotesk */
+  font-size: 24px; /* Dimensione ridotta come su Resend */
+  font-weight: 600; /* Semibold, non Extrabold */
+  color: var(--db-text); /* Nero pieno */
+  letter-spacing: -0.02em; /* Meno compresso rispetto a prima */
   margin-bottom: 6px;
+  line-height: 1; /* Forza l'altezza reale del testo per un calcolo matematico perfetto dell'allineamento */
 }
 .overview-subtitle {
   font-size: 14px;
@@ -406,7 +515,7 @@ body {
 }
 .kpi-card {
   background: var(--db-bg-pure);
-  border: 1px solid var(--db-border-light);
+  border: 1px solid var(--db-border);
   border-radius: 12px;
   padding: 20px 24px;
   display: flex;
@@ -426,7 +535,7 @@ body {
 .kpi-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--db-text-tertiary);
+  color: #334155; /* Soft black (Slate-700): né troppo forte, né troppo debole */
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -437,10 +546,10 @@ body {
 }
 
 .kpi-value {
-  font-family: var(--db-font-display);
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-family: var(--db-font); /* Usiamo Inter/SF Pro invece di Space Grotesk */
+  font-size: 24px; /* Ridotto per essere perfettamente proporzionato allo spazio della card e non superare il titolo H1 */
+  font-weight: 400; /* Regular, non più Bold 700. Crea quell'effetto super elegante della reference */
+  letter-spacing: -0.02em; /* Spaziatura più naturale per numeri leggeri */
   color: var(--db-text);
   line-height: 1;
   margin-bottom: 6px;
@@ -497,21 +606,22 @@ body {
 }
 .search-input {
   width: 100%;
-  height: 36px;
-  padding: 0 14px 0 36px;
-  border: 1px solid var(--db-border);
-  border-radius: 24px;
+  height: 32px; /* Ridotto per matchare l'altezza sottile di Resend */
+  padding: 0 14px 0 34px;
+  border: 1px solid var(--db-border); /* Bordo sottile grigio presente nello screen */
+  border-radius: 9999px; /* Forma a pillola esatta come nello screen */
   font-size: 13px;
   font-family: var(--db-font);
   color: var(--db-text);
   outline: none;
-  background: #ffffff;
+  background: var(--db-surface-active); /* Sfondo grigio pieno */
   transition: all 0.2s;
 }
-.search-input::placeholder { color: var(--db-text-muted); }
+.search-input::placeholder { color: var(--db-text-secondary); }
 .search-input:focus {
-  border-color: var(--db-text-tertiary);
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+  background: var(--db-surface-active); /* Mantiene lo sfondo grigio coerente */
+  border-color: var(--db-text-tertiary); /* Bordo grigio scuro, no blu */
+  box-shadow: none; /* Nessun alone colorato */
 }
 .search-icon {
   position: absolute;
@@ -551,28 +661,32 @@ body {
 }
 
 .filter-pill {
-  height: 36px;
-  padding: 0 28px 0 14px;
-  border: 1px solid var(--db-border);
-  border-radius: 24px;
+  height: 32px; /* Allineato all'altezza della search bar */
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--db-border); /* Bordo presente */
+  border-radius: 9999px; /* Forma a pillola esatta */
   font-size: 13px;
   font-weight: 500;
   font-family: var(--db-font);
-  color: var(--db-text-secondary);
-  background: #ffffff;
+  color: var(--db-text); /* Nero pieno per il testo del filtro */
+  background-color: var(--db-surface-active); /* Modificato in background-color */
   outline: none;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   transition: all 0.2s;
   white-space: nowrap;
 }
-.filter-pill:hover { border-color: var(--db-text-tertiary); color: var(--db-text); }
+.filter-pill:hover { 
+  background-color: var(--db-border); /* Modificato in background-color */
+  color: var(--db-text); 
+}
 .filter-pill:focus {
+  background-color: var(--db-surface-active); /* Modificato in background-color */
   border-color: var(--db-text-tertiary);
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+  box-shadow: none;
 }
 
 /* ── Actions (right) ── */
@@ -628,11 +742,11 @@ body {
   top: 100%;
   right: 0;
   margin-top: 8px;
-  width: 200px;
+  width: 220px; /* Un po' più largo per matchare Resend */
   background: #ffffff;
-  border: 1px solid var(--db-border-light);
+  border: 1px solid var(--db-border);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.15), 0 10px 20px -15px rgba(22, 23, 24, 0.1); /* Ombra enterprise alla Radix/Resend */
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
@@ -648,21 +762,26 @@ body {
   transform: translateY(0);
 }
 .custom-dropdown-item {
-  padding: 8px 10px;
+  padding: 8px 10px; /* Leggermente più arioso */
   border-radius: 6px;
   font-size: 13px;
   font-family: var(--db-font);
-  color: var(--db-text-secondary);
+  color: var(--db-text); /* Testo sempre nero */
   cursor: pointer;
-  transition: all 0.15s;
+  transition: none; /* Tolta la transizione per hover istantaneo come su Resend */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .custom-dropdown-item:hover {
-  background: var(--db-surface-hover);
-  color: var(--db-text);
+  background: var(--db-surface-active); /* Stesso grigio della top bar */
 }
 .custom-dropdown-item.active {
-  font-weight: 500;
-  color: var(--db-text);
+  background-color: var(--db-surface-active); /* Stesso grigio della top bar */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px; /* Spazio per la spunta */
 }
 
 /* ── Filter Dropdown Specifics ── */
@@ -678,69 +797,39 @@ body {
 }
 .filter-group-title {
   font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .05em;
+  font-weight: 500; /* Abbassato da 600 per non urlare */
   color: var(--db-text-tertiary);
-  margin-bottom: 8px;
-  padding-left: 4px;
+  margin-bottom: 4px;
+  padding: 4px 10px; /* Allineato agli item */
 }
 .filter-checkbox-label {
   display: flex;
+  justify-content: space-between; /* Sposta la spunta (se c'è) a destra */
   align-items: center;
-  gap: 8px;
-  padding: 6px 4px;
+  padding: 8px 10px; /* Stesso padding di dropdown-item */
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--db-text-secondary);
-  transition: background 0.15s ease;
+  color: var(--db-text); /* Testo nero */
 }
 .filter-checkbox-label:hover {
-  background: var(--db-surface-hover);
-  color: var(--db-text);
+  background: var(--db-surface-active); /* Stesso grigio della top bar */
 }
 .filter-checkbox-label input {
   display: none;
 }
 .custom-checkbox {
-  box-sizing: border-box;
-  width: 16px;
-  height: 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  background: #fff;
-  position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
-}
-.filter-checkbox-label:hover .custom-checkbox {
-  border-color: #94a3b8;
-}
-.filter-checkbox-label input:checked + .custom-checkbox {
-  background: var(--db-text);
-  border-color: var(--db-text);
-}
-.custom-checkbox::after {
-  content: '';
-  position: absolute;
-  top: 1.5px;
-  left: 4.5px;
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg) scale(0.5);
-  opacity: 0;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.filter-checkbox-label input:checked + .custom-checkbox::after {
-  transform: rotate(45deg) scale(1);
-  opacity: 1;
+  display: none; /* Rimuoviamo il bruttissimo quadratino di default */
 }
 .filter-checkbox-label input:checked ~ span:last-child {
-  color: var(--db-text);
-  font-weight: 500;
+  /* Non più usato */
+}
+.filter-checkbox-label:has(input:checked) {
+  background-color: var(--db-surface-active); /* Stesso grigio della top bar */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px; /* Spazio per l'icona spunta a destra per non tagliare il testo */
 }
 
 /* ══════════════════════════════════════════
@@ -802,15 +891,15 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--db-primary-light);
-  color: var(--db-primary);
+  background: #F4F4F5; /* Neutral gray background */
+  color: #18181B; /* Dark text for initials */
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 15px;
   flex-shrink: 0;
-  border: 2px solid var(--db-primary-glow);
+  border: 1px solid #E4E4E7; /* 1px neutral border */
 }
 .card-name {
   font-weight: 700;
@@ -926,10 +1015,10 @@ body {
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.card-rec-badge.strong-hire { background: var(--db-green-light); color: var(--db-green); border: 1px solid var(--db-green-border); }
-.card-rec-badge.hire { background: var(--db-blue-light); color: var(--db-blue); border: 1px solid var(--db-blue-border); }
-.card-rec-badge.maybe { background: var(--db-orange-light); color: var(--db-orange); border: 1px solid var(--db-orange-border); }
-.card-rec-badge.no-hire { background: var(--db-red-light); color: var(--db-red); border: 1px solid var(--db-red-border); }
+.card-rec-badge.strong-fit { background: var(--db-green-light); color: var(--db-green); border: 1px solid var(--db-green-border); }
+.card-rec-badge.good-fit { background: var(--db-blue-light); color: var(--db-blue); border: 1px solid var(--db-blue-border); }
+.card-rec-badge.review { background: var(--db-orange-light); color: var(--db-orange); border: 1px solid var(--db-orange-border); }
+.card-rec-badge.limited-fit { background: var(--db-red-light); color: var(--db-red); border: 1px solid var(--db-red-border); }
 
 .card-meta {
   display: flex;
@@ -950,33 +1039,37 @@ body {
 
 /* Empty State */
 .empty-state {
-  padding: 80px 32px;
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 140px 32px;
   text-align: center;
-  color: var(--db-text-secondary);
   animation: fadeIn 0.4s;
 }
-.empty-state-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--db-primary-lighter);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  margin: 0 auto 20px;
-}
+
 .empty-state h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--db-text);
   margin-bottom: 8px;
 }
 .empty-state p {
   font-size: 14px;
-  max-width: 380px;
+  color: #71717a; /* Muted gray tipico di Resend/Vercel */
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.5;
+}
+.empty-state a {
+  color: #71717a;
+  text-decoration: underline;
+  text-decoration-color: #d4d4d8;
+  text-underline-offset: 4px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.empty-state a:hover {
+  color: var(--db-text);
+  text-decoration-color: var(--db-text);
 }
 
 /* ══════════════════════════════════════════
@@ -1027,31 +1120,28 @@ body {
 /* ── Surface ── */
 .rpt-back { margin-bottom: 12px; }
 .back-btn {
-  background: #ffffff;
-  border: 1px solid var(--db-border);
+  background: var(--db-surface-active); /* Stesso grigio esatto usato dai filtri (#ebebeb) */
+  border: 1px solid transparent; 
   padding: 6px 14px;
-  border-radius: 20px;
-  color: var(--db-text-secondary);
-  font-size: 12.5px;
-  font-weight: 600;
+  border-radius: 9999px; 
+  color: var(--db-text); 
+  font-size: 13px;
+  font-weight: 500;
   font-family: var(--db-font);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
+  transition: background 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
+  box-shadow: none; 
 }
 .back-btn:hover {
-  background: #f9f9f9;
-  border-color: #94a3b8;
-  color: var(--db-text);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  background: var(--db-border); /* Scurisce all'hover usando il colore dei bordi */
+  color: var(--db-text-strong);
 }
 .back-btn:active {
-  transform: translateY(0);
-  box-shadow: none;
+  transform: translateY(1px); 
 }
 
 .rpt {
@@ -1098,7 +1188,7 @@ body {
 /* ═══ ROW 1: Main header bar ═══ */
 .rpt-hdr-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Allinea in alto per poter gestire i titoli alla stessa altezza */
   padding: 24px 32px;
   gap: 28px;
 }
@@ -1110,22 +1200,22 @@ body {
 }
 .rpt-hdr-avatar {
   width: 44px; height: 44px; border-radius: 50%;
-  background: #4659f2; color: #fff;
+  background: #F4F4F5; color: #18181B; border: 1px solid #E4E4E7;
   display: flex; align-items: center; justify-content: center;
   font-size: 15px; font-weight: 600;
   font-family: var(--db-font-display); flex-shrink: 0;
   letter-spacing: .02em;
 }
 
-.rpt-hdr-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rpt-hdr-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; } /* Gap aumentato da 2 a 6 per spingere la mail in basso */
 .rpt-hdr-name {
-  font-family: var(--db-font-display);
-  font-size: 16px; font-weight: 700; color: var(--db-text);
+  font-family: var(--db-font); /* Stesso font del titolo dashboard (Inter) */
+  font-size: 16px; font-weight: 600; color: var(--db-text); /* Weight 600 per combaciare con il titolo */
   letter-spacing: -.02em; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rpt-hdr-email {
-  font-size: 13px; color: var(--db-text-tertiary); font-weight: 400;
+  font-size: 13px; color: var(--db-text-secondary); font-weight: 400;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -1134,65 +1224,76 @@ body {
   width: 1px; height: 32px;
   background: var(--db-border-light);
   flex-shrink: 0;
+  margin-top: 8px; /* Allinea il separatore al blocco meta e al blocco punteggio, che sono stati abbassati di 8px */
 }
 
 /* — Metadata — */
 .rpt-hdr-meta {
-  display: flex; align-items: center; gap: 32px;
+  display: flex; align-items: flex-start; gap: 40px;
   flex-shrink: 0;
+  margin-top: 8px; /* Leggero ritocco per bilanciare la top-line */
 }
 .rpt-hdr-kv {
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; flex-direction: column; gap: 8px; /* Gap aumentato da 4 a 8 per spingere il valore in basso */
 }
 .rpt-hdr-kv-label {
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0; color: var(--db-text);
-  line-height: 1; text-transform: none;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; color: #334155; /* Soft black e tracking identici alle KPI card */
+  line-height: 1; text-transform: uppercase;
 }
 .rpt-hdr-kv-value {
-  font-size: 13px; font-weight: 400; color: var(--db-text-tertiary);
+  font-size: 13px; font-weight: 400; color: var(--db-text-secondary); /* Grigio medio usato nelle KPI */
   line-height: 1.2; white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-/* — Score — */
+/* — Score (Enterprise B2B Redesign) — */
 .rpt-hdr-score-block {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; flex-direction: column; gap: 6px; /* Aumentato da 2 a 6 per dare respiro al titolo, ma senza rompere l'allineamento in basso */
   flex-shrink: 0;
-  padding-left: 24px;
+  padding-left: 32px;
   border-left: 1px solid var(--db-border-light);
+  margin-top: 8px; 
 }
+
+.rpt-hdr-score-label {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; color: #334155;
+  line-height: 1; text-transform: uppercase;
+}
+
+.rpt-hdr-score-content {
+  display: flex; align-items: center; gap: 12px;
+}
+
 .rpt-hdr-score-num {
-  font-family: var(--db-font-display);
-  font-size: 32px; font-weight: 700;
-  line-height: 1; letter-spacing: -.03em;
+  font-family: var(--db-font); 
+  font-size: 20px; font-weight: 600; /* Ridotto a 20px e aumentato il peso per compensare, creando l'equilibrio geometrico perfetto con i font da 13px */
+  line-height: 1; letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+  color: var(--db-text);
+  display: flex; align-items: baseline; gap: 4px;
 }
-.rpt-hdr-score-num.excellent { color: #059669; }
-.rpt-hdr-score-num.good      { color: #0284c7; }
-.rpt-hdr-score-num.average   { color: #ca8a04; }
-.rpt-hdr-score-num.poor      { color: #dc2626; }
-.rpt-hdr-score-detail {
-  display: flex; flex-direction: column; gap: 3px;
-}
+
 .rpt-hdr-score-of {
-  font-size: 11px; font-weight: 500; color: var(--db-text-muted);
-  line-height: 1;
+  font-size: 13px; font-weight: 500; color: var(--db-text-tertiary); /* Ridotto a 13px per matchare gli altri valori */
+  letter-spacing: 0;
 }
+
 .rpt-hdr-score-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 7px; border-radius: 4px;
-  font-size: 10.5px; font-weight: 600; line-height: 1;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; line-height: 1;
   white-space: nowrap; letter-spacing: .01em;
 }
 .rpt-hdr-score-badge .dot {
   width: 5px; height: 5px; border-radius: 50%;
   background: currentColor; flex-shrink: 0;
 }
-.rpt-hdr-score-badge.strong-hire { background: #ecfdf5; color: #059669; }
-.rpt-hdr-score-badge.hire        { background: #f0f9ff; color: #0284c7; }
-.rpt-hdr-score-badge.maybe       { background: #fefce8; color: #ca8a04; }
-.rpt-hdr-score-badge.no-hire     { background: #fef2f2; color: #dc2626; }
+.rpt-hdr-score-badge.strong-fit { background: #ecfdf5; color: #059669; }
+.rpt-hdr-score-badge.good-fit        { background: #f0f9ff; color: #0284c7; }
+.rpt-hdr-score-badge.review       { background: #fefce8; color: #ca8a04; }
+.rpt-hdr-score-badge.limited-fit     { background: #fef2f2; color: #dc2626; }
 
 /* ═══ ROW 2: AI Summary strip ═══ */
 .rpt-hdr-ai {
@@ -1200,31 +1301,28 @@ body {
 }
 .rpt-hdr-ai-label {
   font-family: var(--db-font-display);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  color: #4659f2;
-  letter-spacing: .05em;
-  margin-bottom: 8px;
-  display: flex;
+  color: #475569; /* Slate 600: leggermente più saturo per compensare il font più piccolo */
+  letter-spacing: .1em;
+  margin-bottom: 12px;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  /* Sostituiamo il border piatto con un multi-shadow: ombra esterna + bordo inset + luce superiore (effetto hardware inciso) */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 4px 10px;
+  border-radius: 9999px;
 }
 .rpt-hdr-ai-text {
   font-size: 14px; line-height: 1.6;
   color: var(--db-text-secondary);
+  margin-right: 180px; /* Questo garantisce che su schermi normali si fermi esattamente in asse con il separatore verticale */
+  max-width: 1100px; /* Questo funge da 'cintura di sicurezza' per schermi ultrawide, come suggerivi (1100-1200px) */
 }
-.rpt-hdr-ai-cta {
-  background: none; border: none; padding: 0; margin: 0;
-  color: #4659f2;
-  font-size: 12.5px; font-weight: 500; font-family: var(--db-font);
-  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-  transition: opacity .12s ease;
-  white-space: nowrap; flex-shrink: 0;
-}
-.rpt-hdr-ai-cta:hover {
-  opacity: 0.75;
-}
+
 
 
 
@@ -1381,8 +1479,9 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #4659f2;
-  color: #fff;
+  background: #F4F4F5; /* Stesso background dell'avatar */
+  color: #18181B; /* Stesso colore del testo dell'avatar */
+  border: 1px solid #E4E4E7; /* Stesso bordino dell'avatar per staccarlo dallo sfondo bianco */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1397,8 +1496,8 @@ body {
   font-size: 15px;
   font-weight: 600;
   color: var(--db-text);
-  font-family: var(--db-font-display);
-  letter-spacing: -.015em;
+  font-family: var(--db-font); /* Stesso font del nome del candidato */
+  letter-spacing: -.01em;
   line-height: 1.2;
 }
 
@@ -1422,8 +1521,8 @@ body {
 .rpt-chevron {
   width: 18px;
   height: 18px;
-  stroke: var(--db-text-tertiary);
-  stroke-width: 2;
+  stroke: #94A3B8; /* Slate 400 - più chiaro e neutro rispetto al testo */
+  stroke-width: 1.5; /* Più sottile ed elegante, meno ripetitivo */
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
@@ -1585,7 +1684,7 @@ body {
 }
 .crm-sep {
   width: 1px;
-  background: var(--db-border-light);
+  background: var(--db-border);
   flex-shrink: 0;
   align-self: stretch;
 }
@@ -1595,7 +1694,7 @@ body {
   margin-bottom: 16px;
 }
 .crm-col-title {
-  font-family: var(--db-font-display);
+  font-family: var(--db-font); /* Stesso font di Prioritizzazione CRM */
   font-size: 14px;
   font-weight: 600;
   color: var(--db-text);
@@ -1616,8 +1715,8 @@ body {
 }
 .crm-lead {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center; /* Allinea verticalmente numero e nome al centro esatto */
+  gap: 12px; /* Aumentato leggermente il gap da 10 a 12 per far respirare il cerchio */
   padding: 10px 16px;
   border-bottom: 1px solid var(--db-border-light);
 }
@@ -1625,25 +1724,32 @@ body {
   border-bottom: none;
 }
 .crm-lead--top {
-  background: #f4f7ff;
-  border: 1px solid rgba(70,89,242,.15);
+  background: var(--db-surface-hover);
+  border: 1px solid var(--db-border);
   border-radius: 8px;
   padding: 12px 16px;
   margin: 4px 0 12px;
 }
 .crm-lead-num {
-  width: 20px; height: 20px;
+  width: 18px; height: 18px; /* Ulteriore riduzione da 20px a 18px */
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 600;
+  font-size: 10px; font-weight: 600; /* Font ridotto proporzionalmente */
   font-family: var(--db-font-display);
   flex-shrink: 0;
-  color: #94a3b8;
-  margin-top: 2px;
+  /* Stile coerente con i pallini delle 6 fasi (sfondo chiaro, bordino, testo secondario) */
+  background: #F8FAFC; 
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  /* margin-top rimosso perché ora gestito da align-items: center */
 }
 .crm-lead-num--top {
-  background: #4659f2; color: #fff;
-  border-radius: 4px;
-  margin-top: 1px;
+  background: #000000; 
+  color: #ffffff;
+  border-color: #000000;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.12); /* Ombra leggermente ridotta proporzionalmente */
+  transform: scale(1.1); /* Mantiene un buon risalto essendo la base più piccola */
 }
 .crm-lead-content {
   flex: 1; min-width: 0;
@@ -1660,8 +1766,17 @@ body {
   font-weight: 600;
 }
 .crm-lead-badge {
-  font-size: 10px; font-weight: 500;
-  color: #4659f2;
+  font-family: var(--db-font-display);
+  font-size: 9px;
+  color: var(--db-text-secondary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 2px 7px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   margin-left: auto;
   white-space: nowrap;
 }
@@ -1675,8 +1790,8 @@ body {
 .crm-doc {
   width: 100%;
   box-sizing: border-box;
-  background: #f4f7ff;
-  border: 1px solid rgba(70,89,242,.15);
+  background: var(--db-surface-hover);
+  border: 1px solid var(--db-border);
   border-radius: 8px;
   padding: 16px 20px;
 }
@@ -1701,15 +1816,19 @@ body {
 }
 .crm-ai-label {
   font-family: var(--db-font-display);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  color: #4659f2;
-  letter-spacing: .05em;
-  margin-bottom: 8px;
-  display: flex;
+  color: #475569;
+  letter-spacing: .1em;
+  margin-bottom: 12px;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 4px 10px;
+  border-radius: 9999px;
 }
 .crm-ai-text {
   font-size: 12.5px; line-height: 1.55;
@@ -1746,9 +1865,9 @@ body {
 .crm-comp-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid var(--db-border);
   border-radius: 10px;
-  background: rgba(0,0,0,0.03);
+  background: var(--db-border); /* Questo crea le linee interne (gap) con lo stesso colore */
   gap: 1px;
 }
 .crm-comp-item {
@@ -1764,10 +1883,10 @@ body {
 .crm-comp-item:last-child:nth-child(odd) { border-bottom-left-radius: 9px; border-bottom-right-radius: 9px; }
 
 .crm-comp-item:hover {
-  background: #f8fafc;
+  background: var(--db-surface-hover);
 }
 .crm-comp-item:hover .crm-comp-info {
-  color: var(--db-primary);
+  color: var(--db-text);
 }
 .crm-comp-name {
   font-size: 13px;
@@ -1795,46 +1914,31 @@ body {
   position: absolute;
   bottom: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: #4659f2;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 6px;
+  transform: translateX(-50%) translateY(4px) scale(0.95);
+  background: #18181B; /* Zinc 900 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #FAFAFA; /* Zinc 50 */
+  font-size: 12px;
+  font-weight: 400;
+  padding: 10px 14px;
+  border-radius: 8px;
   white-space: normal;
   width: max-content;
-  max-width: 260px;
+  max-width: 280px;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
   pointer-events: none;
   z-index: 10;
-  text-align: center;
-  box-shadow: 0 4px 16px rgba(70, 89, 242, 0.25);
-  line-height: 1.45;
+  text-align: left;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  line-height: 1.5;
   margin-bottom: 8px;
 }
-.crm-comp-info::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  border: 5px solid transparent;
-  border-top-color: #4659f2;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.15s ease;
-  pointer-events: none;
-  z-index: 10;
-  margin-bottom: -2px;
-}
-.crm-comp-info:hover::after,
-.crm-comp-info:hover::before {
+.crm-comp-info:hover::after {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 .crm-comp-score-block {
   display: flex;
@@ -1843,21 +1947,33 @@ body {
   margin-bottom: 8px;
 }
 .crm-comp-score-num {
-  font-family: var(--db-font-display);
+  font-family: var(--db-font);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.03em;
+  letter-spacing: -0.01em;
+  color: var(--db-text);
 }
-.crm-comp-score-num.excellent { color: #059669; }
-.crm-comp-score-num.solid     { color: #0284c7; }
-.crm-comp-score-num.adequate  { color: #ca8a04; }
-.crm-comp-score-num.needs-work{ color: #dc2626; }
+.crm-comp-score-num::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 7px;
+  transform: translateY(-3px);
+}
+.crm-comp-score-num.excellent::before { background: #059669; }
+.crm-comp-score-num.solid::before     { background: #0284c7; }
+.crm-comp-score-num.adequate::before  { background: #ca8a04; }
+.crm-comp-score-num.needs-work::before{ background: #dc2626; }
+
 .crm-comp-score-of {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
-  color: rgba(0,0,0,0.25);
+  color: var(--db-text-tertiary);
+  letter-spacing: 0;
 }
 .crm-comp-desc {
   font-size: 12px;
@@ -1875,61 +1991,29 @@ body {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-}
-.whatsapp-player {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px 12px 16px;
-  background: #fff;
-  border-radius: 10px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-  border: 1px solid var(--db-border-light);
-}
-.whatsapp-player .rpt-player-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--db-primary);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background .12s ease;
-}
-.whatsapp-player .rpt-player-btn:hover {
-  background: var(--db-primary-hover);
-}
-.whatsapp-player .rpt-player-time {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--db-primary);
-  opacity: 0.9;
-  margin-left: auto;
-  white-space: nowrap;
+  max-width: 480px;
 }
 
 .rpt-player {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: #fff;
-  border: 1px solid var(--db-border-light);
-  border-radius: 8px;
+  gap: 16px;
+  padding: 12px 20px 12px 16px;
+  background: #FAFAFA; /* Zinc 50 */
+  border: 1px solid #E4E4E7; /* Zinc 200 */
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: none; /* Design flat e solido */
   margin-bottom: 16px;
 }
 
 .rpt-player-btn {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--db-text);
+  background: #000000;
   color: #fff;
   border: none;
   cursor: pointer;
@@ -1937,11 +2021,53 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background .12s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+  will-change: transform;
+}
+
+.rpt-icon-container {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rpt-icon-play, .rpt-icon-pause {
+  position: absolute;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rpt-icon-play {
+  opacity: 1;
+  transform: scale(1);
+  margin-left: 2px; /* Allineamento ottico */
+}
+
+.rpt-icon-pause {
+  opacity: 0;
+  transform: scale(0.5);
+  margin-left: 0;
+}
+
+.rpt-player-btn.playing .rpt-icon-play {
+  opacity: 0;
+  transform: scale(1.5);
+}
+
+.rpt-player-btn.playing .rpt-icon-pause {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .rpt-player-btn:hover {
-  background: #1e293b;
+  background: #18181B; /* Zinc 900 */
+  transform: scale(1.06);
+}
+
+.rpt-player-btn:active {
+  transform: scale(0.96);
 }
 
 .rpt-player-waveform {
@@ -1949,6 +2075,8 @@ body {
   height: 28px;
   position: relative;
   cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .rpt-player-waveform svg {
@@ -1957,11 +2085,12 @@ body {
 }
 
 .rpt-player-time {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: var(--db-font-display);
   font-variant-numeric: tabular-nums;
-  color: var(--db-text-secondary);
+  color: #71717A; /* Zinc 500 */
+  margin-left: auto;
   white-space: nowrap;
   letter-spacing: .01em;
 }
@@ -2100,7 +2229,7 @@ body {
 }
 
 .rpt-transcript-turn:hover {
-  background: #fafbfc;
+  background: var(--db-surface-hover);
 }
 
 .rpt-transcript-turn.highlight {
@@ -2120,8 +2249,8 @@ body {
   transition: color .12s ease;
 }
 
-.rpt-transcript-ts:hover {
-  color: var(--db-primary);
+.rpt-transcript-turn:hover .rpt-transcript-ts {
+  color: var(--db-text);
 }
 
 .rpt-transcript-content {
@@ -2134,20 +2263,23 @@ body {
   font-weight: 600;
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.5px;
   display: inline-flex;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
 }
 
 .rpt-transcript-speaker.candidate {
-  color: #4f46e5;
-  background: rgba(79, 70, 229, 0.08);
+  color: #3F3F46; /* Zinc 700 */
+  background: #E4E4E7; /* Zinc 200 */
+  border-color: #D4D4D8; /* Zinc 300 */
 }
 
 .rpt-transcript-speaker.prospect {
-  color: var(--db-text-secondary);
-  background: rgba(0, 0, 0, 0.05);
+  color: #52525B;
+  background: #F4F4F5;
+  border-color: #E4E4E7;
 }
 
 .rpt-transcript-text {
@@ -2369,20 +2501,20 @@ body {
   align-items: center;
   gap: 4px;
   padding: 3px 6px 3px 8px;
-  background: var(--db-primary-lighter);
-  color: var(--db-primary);
-  border: 1px solid rgba(70, 89, 242, 0.15);
+  background: #F4F4F5; /* Zinc 100 */
+  color: #3F3F46; /* Zinc 700 */
+  border: 1px solid #E4E4E7; /* Zinc 200 */
   border-radius: 12px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 8px;
 }
 .rpt-ts-pill:hover {
-  background: var(--db-primary);
-  color: #fff;
-  border-color: var(--db-primary);
+  background: #E4E4E7; /* Zinc 200 */
+  color: #18181B; /* Zinc 900 */
+  border-color: #D4D4D8; /* Zinc 300 */
 }
 .rpt-ts-pill svg {
   width: 9px;
@@ -2428,29 +2560,22 @@ body {
 .rpt-slack-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 5px;
+  border-radius: 50%; /* Da quadrato arrotondato a cerchio perfetto */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--db-font-display); /* Usa il font circolare/pulito */
   flex-shrink: 0;
-  background: var(--db-border-light);
-  color: var(--db-text-secondary);
-  margin-top: -4px;
+  /* Stesso look 'hardware/inciso' della label Alpha AI (gradient + inset shadow) */
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F4F5 100%);
+  color: var(--db-text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  /* margin-top: -2px rimosso per perfetto allineamento center */
 }
 
-.rpt-slack-avatar.avatar-sdr,
-.rpt-slack-msg-role.avatar-sdr {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--db-primary);
-}
-
-.rpt-slack-avatar.avatar-ae,
-.rpt-slack-msg-role.avatar-ae {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--db-green);
-}
+/* Rimosse le vecchie classi cromatiche specifiche .avatar-sdr e .avatar-ae per avere un look premium omogeneo e dry */
 
 .rpt-slack-msg-content {
   flex: 1;
@@ -2460,7 +2585,7 @@ body {
 .rpt-slack-msg-hdr {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px; /* Padding uniformato tra tutti gli elementi */
   margin-bottom: 3px;
 }
 
@@ -2483,7 +2608,7 @@ body {
 .rpt-key-moments {
   margin-top: 16px;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
 }
 .rpt-key-moments-title {
   font-family: var(--db-font-display);
@@ -2501,15 +2626,15 @@ body {
   margin-bottom: 8px;
   padding: 10px 14px;
   background: #fff;
-  border: 1px solid var(--db-border-light);
-  border-radius: 8px;
+  border: 1px solid #E4E4E7; /* Zinc 200 */
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 .rpt-key-moment:hover {
-  border-color: rgba(0,0,0,0.15);
-  background: #f8fafc;
+  border-color: #D4D4D8; /* Zinc 300 */
+  background: #FAFAFA; /* Zinc 50 */
   box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 }
 .rpt-km-time {
@@ -2531,14 +2656,18 @@ body {
 }
 
 .rpt-slack-msg-role {
-  font-size: 8px;
+  font-family: var(--db-font-display); /* Font moderno e leggibile per uppercase */
+  font-size: 9px; /* Leggermente aumentato da 8px a 9px */
   color: var(--db-text-secondary);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .02em;
-  padding: 1px 4px;
-  background: #f1f5f9;
-  border-radius: 4px;
+  letter-spacing: .06em; /* Tracking più largo per un vero effetto premium */
+  padding: 2px 7px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border); /* Bordo neutro definito */
+  border-radius: 9999px; /* Forma a pillola perfetta */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02); /* Volume quasi impercettibile */
+  /* margin-top rimosso: ora l'allineamento è gestito perfettamente al pixel dal flex align-items: center del contenitore */
 }
 
 .rpt-slack-time {
@@ -2549,40 +2678,41 @@ body {
 
 /* ── AI CTA Premium Styling ── */
 .rpt-hdr-ai-cta {
-  background: rgba(70, 89, 242, 0.08); 
-  border: 1px solid rgba(70, 89, 242, 0.1);
+  background: var(--db-surface-active); /* Stesso grigio esatto della topbar e back-btn */
+  border: 1px solid transparent; 
   padding: 6px 14px; 
-  border-radius: 20px;
-  color: #4659f2;
+  margin-top: 24px; /* Bilancia l'altezza della label soprastante per centrare il bottone sul testo */
+  border-radius: 9999px; /* Pill shape */
+  color: var(--db-text); /* Colore testo uniforme */
   font-size: 12.5px; 
-  font-weight: 600; 
+  font-weight: 500; 
   font-family: var(--db-font);
   cursor: pointer; 
   display: inline-flex; 
   align-items: center; 
-  gap: 4px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
+  /* Transizione ultra-fluida per il feeling premium */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap; 
   flex-shrink: 0;
   text-decoration: none;
+  box-shadow: none; /* Pulizia totale come il back-btn */
 }
 .rpt-hdr-ai-cta:hover {
-  background: rgba(70, 89, 242, 0.15);
-  border-color: rgba(70, 89, 242, 0.25);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(70, 89, 242, 0.1);
-  opacity: 1 !important; /* override the old hover opacity */
+  background: var(--db-border); /* Si scurisce morbidamente all'hover */
+  border-color: transparent; 
+  color: var(--db-text);
 }
 .rpt-hdr-ai-cta:active {
-  transform: translateY(0);
-  box-shadow: none;
+  transform: translateY(1px); /* Stesso effetto fisico del back-btn */
+  transition: transform 0.1s ease; /* Scatto immediato al click */
 }
 .cta-arrow {
   display: inline-block;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .rpt-hdr-ai-cta:hover .cta-arrow {
-  transform: translateX(4px);
+  transform: translateX(3px); /* Movimento laterale discreto */
 }
 
 .rpt-slack-msg-time {
@@ -2898,7 +3028,7 @@ body {
   background: var(--db-surface);
   border: 1px solid var(--db-border);
   border-radius: var(--db-radius);
-  box-shadow: var(--db-shadow-sm);
+  box-shadow: none;
   overflow: hidden;
 }
 .table-topbar {
@@ -2929,14 +3059,12 @@ body {
 }
 
 .ats-table thead th {
-  padding: 12px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--db-text-tertiary);
+  padding: 10px 12px;
+  font-size: 12px; /* Font più piccolo per le intestazioni, come da reference */
+  font-weight: 500;
+  color: var(--db-text);
   border-bottom: 1px solid var(--db-border);
-  background: var(--db-bg);
+  background: var(--db-surface-active);
   position: sticky;
   top: 0;
   z-index: 2;
@@ -2977,14 +3105,15 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #4659f2;
-  color: #fff;
+  background: #F4F4F5; /* Neutral gray background */
+  color: #18181B; /* Dark text for initials */
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
   flex-shrink: 0;
+  border: 1px solid #E4E4E7; /* 1px neutral border */
 }
 
 .td-name-wrap { display: flex; flex-direction: column; gap: 2px; }
@@ -3037,14 +3166,14 @@ body {
   white-space: nowrap;
 }
 .rec-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.rec-badge.strong-hire { background: transparent; color: var(--db-text); }
-.rec-badge.strong-hire .rec-dot { background: var(--db-green); }
-.rec-badge.hire { background: transparent; color: var(--db-text); }
-.rec-badge.hire .rec-dot { background: var(--db-green); }
-.rec-badge.maybe { background: transparent; color: var(--db-text); }
-.rec-badge.maybe .rec-dot { background: var(--db-orange); }
-.rec-badge.no-hire { background: transparent; color: var(--db-text); }
-.rec-badge.no-hire .rec-dot { background: var(--db-red); }
+.rec-badge.strong-fit { background: transparent; color: var(--db-text); }
+.rec-badge.strong-fit .rec-dot { background: var(--db-green); }
+.rec-badge.good-fit { background: transparent; color: var(--db-text); }
+.rec-badge.good-fit .rec-dot { background: var(--db-green); } /* Potresti volerlo var(--db-blue) se vuoi differenziarlo */
+.rec-badge.review { background: transparent; color: var(--db-text); }
+.rec-badge.review .rec-dot { background: var(--db-orange); }
+.rec-badge.limited-fit { background: transparent; color: var(--db-text); }
+.rec-badge.limited-fit .rec-dot { background: var(--db-red); }
 
 /* ── Strength / Weakness badges ── */
 .badge-strength,

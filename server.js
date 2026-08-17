@@ -80,7 +80,7 @@ const mockGood = {
     qualificationScore: 88,
     handoffScore: 95,
     processScore: 90,
-    recommendation: 'Strong Hire',
+    recommendation: 'Strong Fit',
     recExplain: 'Marta ha dimostrato un\'eccellente padronanza del ciclo SDR inbound. Ha prioritizzato correttamente il lead con il maggiore pain point finanziario (Edilizia Marchetti), ha condotto una discovery call impeccabile individuando impatto e timeline, e ha saputo difendere la sua posizione nell\'intervista. Profilo altamente raccomandato per il ruolo.',
     infoDiscovered: {
       pain: { status: 'emerso', value: '4 cantieri slegati, perdite di 15k, uso di Excel e WhatsApp caotico' },
@@ -1798,7 +1798,7 @@ Rispondi ESCLUSIVAMENTE con un JSON valido (senza commenti, senza markdown, senz
   "crmScore": <numero 0-100>,
   "aiCommunicationScore": <numero 0-100>,
   "level": "<Excellent|Good|Average|Poor>",
-  "recommendation": "<Strong Hire|Hire|Maybe|No Hire>",
+  "recommendation": "<Strong Fit|Good Fit|Review|Limited Fit>",
   "recExplain": "<spiegazione dettagliata in italiano della raccomandazione, 3-4 frasi>",
   "competencies": {
     "communication": <1-10>,
@@ -1939,16 +1939,16 @@ function generateEvaluationFallback(analytics) {
   let recExplain = '';
   
   if (overallScore >= 85) {
-    level = 'Excellent'; badgeClass = 'badge-excellent'; recommendation = 'Strong Hire';
+    level = 'Excellent'; badgeClass = 'badge-excellent'; recommendation = 'Strong Fit';
     recExplain = `Il candidato ha dimostrato eccellenti capacità di discovery, qualificando il lead in modo metodico e strutturato.`;
   } else if (overallScore >= 70) {
-    level = 'Good'; badgeClass = 'badge-good'; recommendation = 'Hire';
+    level = 'Good'; badgeClass = 'badge-good'; recommendation = 'Good Fit';
     recExplain = `Ottima performance. La comunicazione è fluida ed empatica. Ha scoperto i problemi principali e compilato la qualifica in modo accurato.`;
   } else if (overallScore >= 50) {
-    level = 'Average'; badgeClass = 'badge-average'; recommendation = 'Maybe';
+    level = 'Fair'; badgeClass = 'badge-fair'; recommendation = 'Review';
     recExplain = `Performance nella media. Il candidato segue il flusso ma tende a subire le divagazioni del prospect o a proporre la demo troppo presto.`;
   } else {
-    level = 'Poor'; badgeClass = 'badge-poor'; recommendation = 'No Hire';
+    level = 'Poor'; badgeClass = 'badge-poor'; recommendation = 'Limited Fit';
     recExplain = `Performance sotto gli standard. Il candidato non è riuscito a condurre una discovery strutturata.`;
   }
 

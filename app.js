@@ -781,48 +781,7 @@ async function runWelcomeSequence() {
 // ── Nudge timers ──
 let nudgeCount = 0;
 function startNudgeTimers() {
-  // First nudge after 45 seconds (timestamp 10:41)
-  setTimeout(async () => {
-    if (crmOpened || nudgeCount > 0) return; // already nudged or CRM opened
-    nudgeCount++;
-    if (activeChannel === 'welcome') {
-      await showTyping('Marco', 1200);
-    }
-    const nudge1 = createMsgHTML(team.marco, '10:41', `Sei pronto? Apri il CRM quando vuoi e inizia a dare un’occhiata ai lead.`, { forceNewBlock: true }, 'welcome');
-    addMsgToChannel('welcome', nudge1, { sender: 'marco', senderName: team.marco.name, content: `Sei pronto? Apri il CRM quando vuoi e inizia a dare un’occhiata ai lead.` });
-  }, 45000);
-
-  // Second nudge / Auto-redirect after 150 seconds (2.5 minutes) (timestamp 10:43)
-  setTimeout(async () => {
-    if (crmOpened) return;
-    
-    const currentPhase = document.querySelector('.phase.active')?.id;
-    if (currentPhase !== 'phase-slack') return;
-
-    nudgeCount = 999; // prevent other actions
-    
-    // Force switch to welcome channel to ensure it renders visually
-    activeChannel = ''; 
-    switchChannel('welcome');
-    await wsDelay(1000); // short delay to register switch
-    
-    await showTyping('Marco', 1500);
-    const forceMsg = createMsgHTML(team.marco, '10:43', 
-      `Perfetto, direi che è il momento di iniziare.<br><br>Ti ho aperto la pipeline inbound. Ora sta a te capire dove vale davvero la pena investire il tuo tempo.`, 
-      { forceNewBlock: true }, 'welcome');
-    addMsgToChannel('welcome', forceMsg, { sender: 'marco', senderName: team.marco.name, content: `Perfetto, direi che è il momento di iniziare. Ti ho aperto la pipeline inbound. Ora sta a te capire dove vale davvero la pena investire il tuo tempo.` });
-    
-    // Auto-trigger CRM open after 6 seconds so they can read the message first
-    setTimeout(() => {
-      if (!crmOpened) {
-        const currentPhase2 = document.querySelector('.phase.active')?.id;
-        if (currentPhase2 === 'phase-slack') {
-          const btn = document.getElementById('ws-cta-open-crm');
-          if (btn) btn.click();
-        }
-      }
-    }, 6000);
-  }, 150000);
+  // Nudge timers removed as per user request so candidate can decide when to open CRM.
 }
 
 // ── Candidate message sending ──

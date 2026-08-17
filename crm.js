@@ -198,16 +198,10 @@ function initCRMAnalytics() {
 // TIMER — 15 minute countdown
 // ══════════════════════════════════════════
 function startCRMTimer() {
-  crmRemainingSeconds = 900;
-  updateCRMTimerDisplay();
-  crmTimerInterval = setInterval(() => {
-    crmRemainingSeconds--;
-    updateCRMTimerDisplay();
-    if (crmRemainingSeconds <= 0) {
-      clearInterval(crmTimerInterval);
-      handleCRMTimeUp();
-    }
-  }, 1000);
+  const timerEl = document.getElementById('crm-timer');
+  if (timerEl) {
+    timerEl.style.display = 'none';
+  }
 }
 
 function updateCRMTimerDisplay() {
@@ -477,26 +471,6 @@ function renderLeadDetail(lead) {
       </div>
     </div>
 
-    <!-- Section: Gap informativi -->
-    ${lead.missingInfo.length > 0 ? `
-    <div class="crm-section collapsed" data-section="gaps-${lead.id}">
-      <div class="crm-section-header" onclick="toggleCRMSection(this)">
-        <span class="crm-section-title">Gap informativi</span>
-        <svg class="crm-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="crm-section-content">
-        <div class="crm-activity-list">
-          ${lead.missingInfo.map(info => `
-            <div class="crm-activity-item">
-              <span class="crm-activity-icon">⚠️</span>
-              <div class="crm-activity-body">
-                <span class="crm-activity-text">${info}</span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </div>` : ''}
   `;
 
   // Bind priority button

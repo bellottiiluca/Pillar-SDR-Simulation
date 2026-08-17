@@ -205,7 +205,10 @@ function showOverview() {
   document.getElementById('app-sidebar').classList.remove('hidden');
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-overview').style.display = 'block';
-  document.getElementById('db-breadcrumb-current').textContent = "Dashboard";
+  
+  // Ripristina il bordo della topbar
+  const topbar = document.querySelector('.app-topbar');
+  if (topbar) topbar.classList.remove('no-border');
   // Re-trigger animation
   const section = document.getElementById('view-overview');
   section.style.animation = 'none';
@@ -219,6 +222,10 @@ async function showDetail(id) {
   document.getElementById('app-sidebar').classList.add('hidden');
   document.getElementById('view-overview').style.display = 'none';
   document.getElementById('view-detail').style.display = 'block';
+
+  // Rimuovi il bordo della topbar nel report
+  const topbar = document.querySelector('.app-topbar');
+  if (topbar) topbar.classList.add('no-border');
 
 
 
@@ -258,15 +265,16 @@ function updateKPIs() {
     return;
   }
 
-  // Strong Hire Rate
-  const strongHireCount = sessions.filter(s => {
-    const rec = (s.evaluation?.recommendation || '').trim().toLowerCase();
-    return rec === 'strong hire';
+  // Strong Fit Rate
+  const validSessions = sessions.filter(s => s.evaluation);
+  const strongFitCount = validSessions.filter(s => {
+    const rec = (s.evaluation?.recommendation || '').toLowerCase().trim();
+    return rec === 'strong fit' || rec === 'strong hire';
   }).length;
-  const strongHireRate = Math.round((strongHireCount / completed) * 100);
-  animateCounter('kpi-strong-hire-rate', strongHireRate, '%');
-  document.getElementById('kpi-strong-hire-detail').textContent = `${strongHireCount} candidat${strongHireCount === 1 ? 'o' : 'i'} su ${completed}`;
-  document.getElementById('kpi-strong-hire-trend').textContent = strongHireCount > 0 ? `↑ +${strongHireCount} Strong Hire` : '0 Strong Hire';
+  const strongFitRate = completed > 0 ? Math.round((strongFitCount / completed) * 100) : 0;
+  animateCounter('kpi-strong-hire-rate', strongFitRate, '%');
+  document.getElementById('kpi-strong-hire-detail').textContent = `${strongFitCount} candidat${strongFitCount === 1 ? 'o' : 'i'} su ${completed}`;
+  document.getElementById('kpi-strong-hire-trend').textContent = strongFitCount > 0 ? `↑ +${strongFitCount} Strong Fit` : '0 Strong Fit';
 
   // Average Overall Score
   const avgScore = Math.round(sessions.reduce((acc, curr) => acc + (curr.evaluation?.overallScore || 0), 0) / completed);
@@ -396,20 +404,20 @@ function renderOverview() {
     const fullName = `${s.candidate.firstName} ${s.candidate.lastName}`;
     const initials = (s.candidate.firstName.charAt(0) + s.candidate.lastName.charAt(0)).toUpperCase();
     const durationStr = formatCallDuration(s.callDuration);
-    const ev = s.evaluation || { overallScore: 50, discoveryScore: 50, qualificationScore: 50, handoffScore: 50, aiCommunicationScore: 50, level: 'Average', badgeClass: 'badge-average', recommendation: 'Maybe', strengths: [], improvements: [] };
+    const ev = s.evaluation || { overallScore: 50, discoveryScore: 50, qualificationScore: 50, handoffScore: 50, aiCommunicationScore: 50, level: 'Average', badgeClass: 'badge-average', recommendation: 'Review', strengths: [], improvements: [] };
     const scoreClass = getScoreClass(ev.overallScore);
 
     // Recommendation badge
     let recBadgeHtml = "";
-    const rec = (ev.recommendation || "Review").trim().toLowerCase().replace(' ', '-');
-    if (rec === 'strong-hire') {
-      recBadgeHtml = `<span class="rec-badge strong-hire"><span class="rec-dot"></span>Strong Hire</span>`;
-    } else if (rec === 'hire') {
-      recBadgeHtml = `<span class="rec-badge hire"><span class="rec-dot"></span>Hire</span>`;
-    } else if (rec === 'no-hire' || rec === 'reject' || rec === 'rejected') {
-      recBadgeHtml = `<span class="rec-badge no-hire"><span class="rec-dot"></span>No Hire</span>`;
+    const rec = (ev.recommendation || "Review").trim().toLowerCase();
+    if (rec === 'strong fit' || rec === 'strong hire') {
+      recBadgeHtml = `<span class="rec-badge strong-fit"><span class="rec-dot"></span>Strong Fit</span>`;
+    } else if (rec === 'good fit' || rec === 'hire') {
+      recBadgeHtml = `<span class="rec-badge good-fit"><span class="rec-dot"></span>Good Fit</span>`;
+    } else if (rec === 'limited fit' || rec === 'no hire' || rec === 'no-hire' || rec === 'reject' || rec === 'rejected') {
+      recBadgeHtml = `<span class="rec-badge limited-fit"><span class="rec-dot"></span>Limited Fit</span>`;
     } else {
-      recBadgeHtml = `<span class="rec-badge maybe"><span class="rec-dot"></span>Review</span>`;
+      recBadgeHtml = `<span class="rec-badge review"><span class="rec-dot"></span>Review</span>`;
     }
 
     // Top Strength & Biggest Weakness — derived from phase scores
@@ -519,14 +527,12 @@ window.playDemoAudio = function(btn) {
   if (!bars.length || !btn) return;
   
   const timeDisplay = document.querySelector('.rpt-player-time');
-  const playIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
-  const pauseIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
   
   if (!window.demoAudioElement && window.currentAudioUrl) {
     window.demoAudioElement = new Audio(window.currentAudioUrl);
     window.demoAudioElement.onended = () => {
       window.demoAudioPlaying = false;
-      btn.innerHTML = playIcon;
+      btn.classList.remove('playing');
       if (timeDisplay) timeDisplay.textContent = `${formatCallDuration(window.currentCallDuration)} / ${formatCallDuration(window.currentCallDuration)}`;
       bars.forEach(b => b.setAttribute('fill', '#cbd5e1')); // reset
       cancelAnimationFrame(window.demoAudioAnimFrame);
@@ -541,7 +547,7 @@ window.playDemoAudio = function(btn) {
   window.demoAudioPlaying = !window.demoAudioPlaying;
   
   if (window.demoAudioPlaying) {
-    btn.innerHTML = pauseIcon;
+    btn.classList.add('playing');
     window.demoAudioElement.play();
     
     function updateProgress() {
@@ -553,7 +559,7 @@ window.playDemoAudio = function(btn) {
       
       const activeBars = Math.floor(percent * bars.length);
       for (let i = 0; i < bars.length; i++) {
-        bars[i].setAttribute('fill', i < activeBars ? '#2563eb' : '#cbd5e1');
+        bars[i].setAttribute('fill', i < activeBars ? '#000000' : '#cbd5e1');
       }
       
       if (timeDisplay) timeDisplay.textContent = `${formatCallDuration(currentTime)} / ${formatCallDuration(duration)}`;
@@ -562,7 +568,7 @@ window.playDemoAudio = function(btn) {
     window.demoAudioAnimFrame = requestAnimationFrame(updateProgress);
     
   } else {
-    btn.innerHTML = playIcon;
+    btn.classList.remove('playing');
     window.demoAudioElement.pause();
     cancelAnimationFrame(window.demoAudioAnimFrame);
   }
@@ -576,7 +582,16 @@ function renderDetail(s) {
   const initials = (cand.firstName.charAt(0) + cand.lastName.charAt(0)).toUpperCase();
   const dateStr = new Date(s.savedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
   const scoreClass = getScoreClass(ev.overallScore);
-  const recClass = ev.recommendation.toLowerCase().replace(/ /g, '-');
+  
+  // Recommendation logic con retrocompatibilità per vecchi dati
+  let rawRec = (ev.recommendation || 'Review').trim();
+  let rLow = rawRec.toLowerCase();
+  let recText = 'Review';
+  if (rLow === 'strong hire' || rLow === 'strong fit') recText = 'Strong Fit';
+  else if (rLow === 'hire' || rLow === 'good fit') recText = 'Good Fit';
+  else if (rLow === 'no hire' || rLow === 'limited fit' || rLow === 'reject' || rLow === 'rejected') recText = 'Limited Fit';
+  let recClass = recText.toLowerCase().replace(/ /g, '-');
+
   const callDur = formatCallDuration(an.call?.callDuration || s.callDuration || 0);
   const ci = ev.conversationInsights || {};
   const qual = an.qualification || {};
@@ -635,10 +650,10 @@ function renderDetail(s) {
       </div>
 
       <div class="rpt-hdr-score-block">
-        <div class="rpt-hdr-score-num ${scoreClass}">${ev.overallScore}</div>
-        <div class="rpt-hdr-score-detail">
-          <span class="rpt-hdr-score-of">/ 100</span>
-          <span class="rpt-hdr-score-badge ${recClass}"><span class="dot"></span>${ev.recommendation}</span>
+        <div class="rpt-hdr-score-label">PUNTEGGIO</div>
+        <div class="rpt-hdr-score-content">
+          <div class="rpt-hdr-score-num">${ev.overallScore}<span class="rpt-hdr-score-of">/ 100</span></div>
+          <div class="rpt-hdr-score-badge ${recClass}"><span class="dot"></span>${recText}</div>
         </div>
       </div>
 
@@ -647,7 +662,7 @@ function renderDetail(s) {
     <!-- Row 2: AI Summary -->
     <div class="rpt-hdr-ai">
       <div class="rpt-hdr-ai-label">
-        <span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>
+        <span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>
         Sintesi Alpha AI
       </div>
       <div class="rpt-hdr-ai-text">${escapeHtml(ev.recExplain || '')}</div>
@@ -742,11 +757,11 @@ function renderDetail(s) {
           <div class="crm-col-title">Motivazione del candidato</div>
           <div class="crm-col-sub">Il candidato ha scritto ${motivationWords} parole.</div>
         </div>
-        <div class="crm-doc" style="padding: 16px 20px;">
-          <div class="rpt-slack-msg-hdr" style="margin-bottom: 8px;">
-            <div class="rpt-slack-avatar avatar-sdr" style="margin-right: 8px; margin-top: 0;">${initials}</div>
+        <div class="crm-doc" style="padding: 11px 20px 16px 20px;">
+          <div class="rpt-slack-msg-hdr" style="margin-bottom: 12px;">
+            <div class="rpt-slack-avatar">${initials}</div>
             <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-            <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound Intern</span>
+            <span class="rpt-slack-msg-role">SDR Inbound Intern</span>
           </div>
           <div class="rpt-slack-msg-text" style="max-width: none;">${escapeHtml(motivationText)}</div>
         </div>
@@ -756,7 +771,7 @@ function renderDetail(s) {
 
     <div class="crm-ai">
       <div class="crm-ai-body">
-        <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+        <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
         <div class="crm-ai-text">${escapeHtml(crmAiText).replace(/\\n/g, '<br>')} Per un'analisi dettagliata, consulta Alpha AI.</div>
       </div>
       <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -808,7 +823,7 @@ function renderDetail(s) {
               <div class="crm-comp-name">
                 ${escapeHtml(c.name)}
                 <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 </div>
               </div>
               <div class="crm-comp-score-block">
@@ -853,7 +868,7 @@ function renderDetail(s) {
       <div class="rpt-transcript-turn">
         <span class="rpt-transcript-ts">${t.timestamp}</span>
         <div class="rpt-transcript-content">
-          <div class="rpt-transcript-speaker ${t.speaker}">${t.speaker === 'candidate' ? `${cand.firstName}` : prospectName}</div>
+          <div class="rpt-transcript-speaker ${t.speaker}">${t.speaker === 'candidate' ? `${cand.firstName} ${cand.lastName || ''}`.trim() : prospectName}</div>
           <div class="rpt-transcript-text">${escapeHtml(t.text)}</div>
         </div>
       </div>
@@ -867,7 +882,7 @@ function renderDetail(s) {
         <div class="rpt-transcript-turn">
           <span class="rpt-transcript-ts">${formatTimestamp(idx, messages.length, an.call?.callDuration || 300)}</span>
           <div class="rpt-transcript-content">
-            <div class="rpt-transcript-speaker ${isCand ? 'candidate' : 'prospect'}">${speaker}</div>
+            <div class="rpt-transcript-speaker ${isCand ? 'candidate' : 'prospect'}">${isCand ? `${cand.firstName} ${cand.lastName || ''}`.trim() : prospectName}</div>
             <div class="rpt-transcript-text">${escapeHtml(m.content)}</div>
           </div>
         </div>
@@ -884,7 +899,7 @@ function renderDetail(s) {
         <div class="rpt-transcript-turn">
           <span class="rpt-transcript-ts">--:--</span>
           <div class="rpt-transcript-content">
-            <div class="rpt-transcript-speaker ${isCand ? 'candidate' : 'prospect'}">${speaker}</div>
+            <div class="rpt-transcript-speaker ${isCand ? 'candidate' : 'prospect'}">${isCand ? `${cand.firstName} ${cand.lastName || ''}`.trim() : prospectName}</div>
             <div class="rpt-transcript-text">${escapeHtml(text)}</div>
           </div>
         </div>
@@ -962,8 +977,11 @@ function renderDetail(s) {
             </div>
             <div class="whatsapp-player-container">
               <div class="rpt-player whatsapp-player">
-                <button class="rpt-player-btn" onclick="playDemoAudio()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <button class="rpt-player-btn" onclick="playDemoAudio(this)">
+                  <div class="rpt-icon-container">
+                    <svg class="rpt-icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <svg class="rpt-icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                  </div>
                 </button>
                 <div class="rpt-player-waveform">${waveformSvg}</div>
                 <div class="rpt-player-time">00:00 / ${formatCallDuration(an.call?.callDuration || 0)}</div>
@@ -1003,7 +1021,7 @@ function renderDetail(s) {
 
         <div class="crm-ai">
           <div class="crm-ai-body">
-            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(callAiText)}</div>
           </div>
           <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -1025,7 +1043,7 @@ function renderDetail(s) {
                   <div class="crm-comp-name">
                     ${escapeHtml(c.name)}
                     <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                     </div>
                   </div>
                   <div class="crm-comp-score-block">
@@ -1103,7 +1121,7 @@ function renderDetail(s) {
     <div class="rpt-phase-hdr" onclick="togglePhase(this)">
       <div class="rpt-phase-hdr-left">
         <span class="rpt-phase-num">3</span>
-        <span class="rpt-phase-title">Qualification</span>
+        <span class="rpt-phase-title">Qualificazione</span>
       </div>
       <div class="rpt-phase-hdr-right">
         <div class="rpt-phase-score-pill ${qualClass}"><span class="pill-dot"></span>${qualScore} / 100</div>
@@ -1121,7 +1139,7 @@ function renderDetail(s) {
 
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
-            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(qualAiText)}</div>
           </div>
           <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -1143,7 +1161,7 @@ function renderDetail(s) {
                   <div class="crm-comp-name">
                     ${escapeHtml(c.name)}
                     <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                     </div>
                   </div>
                   <div class="crm-comp-score-block">
@@ -1223,7 +1241,7 @@ function renderDetail(s) {
     <div class="rpt-phase-hdr" onclick="togglePhase(this)">
       <div class="rpt-phase-hdr-left">
         <span class="rpt-phase-num">4</span>
-        <span class="rpt-phase-title">Handoff all'AE</span>
+        <span class="rpt-phase-title">Handoff all'Account Executive</span>
       </div>
       <div class="rpt-phase-hdr-right">
         <div class="rpt-phase-score-pill ${handoffClass}"><span class="pill-dot"></span>${handoffScore} / 100</div>
@@ -1248,7 +1266,7 @@ function renderDetail(s) {
 
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
-            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(handoffAiText)}</div>
           </div>
           <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -1270,7 +1288,7 @@ function renderDetail(s) {
                   <div class="crm-comp-name">
                     ${escapeHtml(c.name)}
                     <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                     </div>
                   </div>
                   <div class="crm-comp-score-block">
@@ -1349,7 +1367,7 @@ function renderDetail(s) {
         
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
-            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">La candidata ha individuato con precisione il problema di conversione del form inbound, proponendo una soluzione pragmatica e difendendola in modo strutturato. Ha dimostrato eccellente proattività.</div>
           </div>
           <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -1361,7 +1379,7 @@ function renderDetail(s) {
               <div class="crm-comp-name">
                 Analisi del processo
                 <div class="crm-comp-info" data-tooltip="Valuta la capacità di individuare inefficienze, punti di attrito e opportunità di miglioramento sulla base dell’esperienza maturata durante la simulazione.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 </div>
               </div>
               <div class="crm-comp-score-block">
@@ -1374,7 +1392,7 @@ function renderDetail(s) {
               <div class="crm-comp-name">
                 Progettazione dei miglioramenti
                 <div class="crm-comp-info" data-tooltip="Valuta la capacità di proporre interventi concreti, coerenti con i problemi individuati e potenzialmente applicabili al processo di vendita.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 </div>
               </div>
               <div class="crm-comp-score-block">
@@ -1463,7 +1481,7 @@ function renderDetail(s) {
         
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
-            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 4px; background-color: #4659f2; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
+            <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">La candidata mostra una forte ambizione e una chiara intenzione di crescere nel ruolo. Si adatta perfettamente ai valori aziendali, offrendo uno spaccato onesto sui suoi limiti e su come correggerli.</div>
           </div>
           <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
@@ -1475,7 +1493,7 @@ function renderDetail(s) {
               <div class="crm-comp-name">
                 Consapevolezza professionale
                 <div class="crm-comp-info" data-tooltip="Valuta la capacità di analizzare in modo realistico il proprio operato, riconoscendo punti di forza, limiti e aree di miglioramento emerse durante la simulazione.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 </div>
               </div>
               <div class="crm-comp-score-block">
@@ -1488,7 +1506,7 @@ function renderDetail(s) {
               <div class="crm-comp-name">
                 Coachability
                 <div class="crm-comp-info" data-tooltip="Valuta la capacità di accogliere feedback, riconsiderare le proprie scelte e tradurre le indicazioni ricevute in comportamenti o approcci migliorativi.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 </div>
               </div>
               <div class="crm-comp-score-block">
