@@ -1198,15 +1198,13 @@ function renderDetail(s) {
       const avatarClass = isAE ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
-          <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
-          <div class="rpt-slack-msg-content">
-            <div class="rpt-slack-msg-hdr">
-              <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
-              <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
-              <span class="rpt-slack-msg-time">${msg.timestamp}</span>
-            </div>
-            <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
+          <div class="rpt-slack-msg-hdr">
+            <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
+            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
+            <span class="rpt-slack-msg-time">${msg.timestamp}</span>
           </div>
+          <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
         </div>
       `;
     }).join('');
@@ -1221,15 +1219,13 @@ function renderDetail(s) {
       const avatarClass = isAE ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg">
-          <div class="rpt-slack-avatar ${avatarClass}">${initials}</div>
-          <div class="rpt-slack-msg-content">
-            <div class="rpt-slack-msg-hdr">
-              <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
-              <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
-              ${msg.channel ? `<span class="rpt-slack-msg-role ${avatarClass}">#${escapeHtml(msg.channel)}</span>` : ''}
-            </div>
-            <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
+          <div class="rpt-slack-msg-hdr">
+            <div class="rpt-slack-avatar ${avatarClass}">${initials}</div>
+            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
+            ${msg.channel ? `<span class="rpt-slack-msg-role ${avatarClass}">#${escapeHtml(msg.channel)}</span>` : ''}
           </div>
+          <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
         </div>
       `;
     }).join('');
@@ -1330,37 +1326,31 @@ function renderDetail(s) {
           <div class="crm-col-title" style="margin-bottom: 16px;">Conversazione con il Sales Manager</div>
           <div class="rpt-slack-thread">
             <div class="rpt-slack-msg">
-              <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                  <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                  <span class="rpt-slack-msg-time">10:15</span>
-                </div>
-                <div class="rpt-slack-msg-text">Ho notato che il tasso di conversione dal form al primo meeting è sceso del 15%. Suggerisco di snellire i campi obbligatori o implementare un tool di booking diretto.</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+                <span class="rpt-slack-msg-time">10:15</span>
               </div>
+              <div class="rpt-slack-msg-text">Ho notato che il tasso di conversione dal form al primo meeting è sceso del 15%. Suggerisco di snellire i campi obbligatori o implementare un tool di booking diretto.</div>
             </div>
             <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-avatar avatar-ae">SO</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">Sales Ops</span>
-                  <span class="rpt-slack-msg-role avatar-ae">Manager</span>
-                  <span class="rpt-slack-msg-time">10:42</span>
-                </div>
-                <div class="rpt-slack-msg-text">Ottima osservazione, è un dato su cui volevamo indagare. Hai in mente un tool specifico?</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-ae">SO</div>
+                <span class="rpt-slack-msg-name">Sales Ops</span>
+                <span class="rpt-slack-msg-role avatar-ae">Manager</span>
+                <span class="rpt-slack-msg-time">10:42</span>
               </div>
+              <div class="rpt-slack-msg-text">Ottima osservazione, è un dato su cui volevamo indagare. Hai in mente un tool specifico?</div>
             </div>
             <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                  <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                  <span class="rpt-slack-msg-time">10:45</span>
-                </div>
-                <div class="rpt-slack-msg-text">Possiamo usare Calendly o Chili Piper direttamente nella thank you page. In questo modo eliminiamo due passaggi intermedi via email, che attualmente generano drop-off.</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+                <span class="rpt-slack-msg-time">10:45</span>
               </div>
+              <div class="rpt-slack-msg-text">Possiamo usare Calendly o Chili Piper direttamente nella thank you page. In questo modo eliminiamo due passaggi intermedi via email, che attualmente generano drop-off.</div>
             </div>
           </div>
         </div>
@@ -1433,48 +1423,40 @@ function renderDetail(s) {
           <div class="crm-col-title" style="margin-bottom: 16px;">Conversazione con il Founder</div>
           <div class="rpt-slack-thread">
             <div class="rpt-slack-msg">
-              <div class="rpt-slack-avatar avatar-ae">MR</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">Marco Rossi</span>
-                  <span class="rpt-slack-msg-role avatar-ae">Founder</span>
-                  <span class="rpt-slack-msg-time">14:00</span>
-                </div>
-                <div class="rpt-slack-msg-text">Ciao, partiamo dalla fine: qual è il tuo obiettivo professionale nei prossimi 3 anni?</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-ae">MR</div>
+                <span class="rpt-slack-msg-name">Marco Rossi</span>
+                <span class="rpt-slack-msg-role avatar-ae">Founder</span>
+                <span class="rpt-slack-msg-time">14:00</span>
               </div>
+              <div class="rpt-slack-msg-text">Ciao, partiamo dalla fine: qual è il tuo obiettivo professionale nei prossimi 3 anni?</div>
             </div>
             <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                  <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                  <span class="rpt-slack-msg-time">14:02</span>
-                </div>
-                <div class="rpt-slack-msg-text">Vorrei padroneggiare il ciclo di vendita inbound per poi transizionare in un ruolo di Account Executive, contribuendo direttamente alla crescita del fatturato. E se ci fosse l'opportunità, mi piacerebbe fare coaching ai futuri SDR.</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+                <span class="rpt-slack-msg-time">14:02</span>
               </div>
+              <div class="rpt-slack-msg-text">Vorrei padroneggiare il ciclo di vendita inbound per poi transizionare in un ruolo di Account Executive, contribuendo direttamente alla crescita del fatturato. E se ci fosse l'opportunità, mi piacerebbe fare coaching ai futuri SDR.</div>
             </div>
             <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-avatar avatar-ae">MR</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">Marco Rossi</span>
-                  <span class="rpt-slack-msg-role avatar-ae">Founder</span>
-                  <span class="rpt-slack-msg-time">14:05</span>
-                </div>
-                <div class="rpt-slack-msg-text">Molto chiaro. E come valuteresti la tua ultima performance durante questa simulazione, specialmente per la parte di handoff?</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-ae">MR</div>
+                <span class="rpt-slack-msg-name">Marco Rossi</span>
+                <span class="rpt-slack-msg-role avatar-ae">Founder</span>
+                <span class="rpt-slack-msg-time">14:05</span>
               </div>
+              <div class="rpt-slack-msg-text">Molto chiaro. E come valuteresti la tua ultima performance durante questa simulazione, specialmente per la parte di handoff?</div>
             </div>
             <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-              <div class="rpt-slack-msg-content">
-                <div class="rpt-slack-msg-hdr">
-                  <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                  <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                  <span class="rpt-slack-msg-time">14:08</span>
-                </div>
-                <div class="rpt-slack-msg-text">Credo di aver identificato perfettamente il pain point, ma avrei potuto spingere di più sulla quantificazione esatta del budget disponibile. Inoltre, nel messaggio all'Account Executive, avrei dovuto evidenziare più nettamente il competitor in gioco. È sicuramente la prima cosa che correggerò alla prossima telefonata.</div>
+              <div class="rpt-slack-msg-hdr">
+                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+                <span class="rpt-slack-msg-time">14:08</span>
               </div>
+              <div class="rpt-slack-msg-text">Credo di aver identificato perfettamente il pain point, ma avrei potuto spingere di più sulla quantificazione esatta del budget disponibile. Inoltre, nel messaggio all'Account Executive, avrei dovuto evidenziare più nettamente il competitor in gioco. È sicuramente la prima cosa che correggerò alla prossima telefonata.</div>
             </div>
           </div>
         </div>

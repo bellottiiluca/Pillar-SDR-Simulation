@@ -2129,6 +2129,30 @@ body {
   gap: 2px;
 }
 
+.rpt-accuracy-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 0;
+  color: var(--db-text);
+  white-space: nowrap;
+}
+
+.rpt-accuracy-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.rpt-accuracy-status.coerente::before { background: var(--db-green); }
+.rpt-accuracy-status.parziale::before { background: var(--db-orange); }
+.rpt-accuracy-status.non-supportato::before { background: var(--db-red); }
+.rpt-accuracy-status.mancante::before,
+.rpt-accuracy-status.n\/a::before { background: var(--db-text-muted); }
+
 .rpt-call-stat-label {
   font-size: 10px;
   font-weight: 600;
@@ -2426,14 +2450,12 @@ body {
 
 .rpt-accuracy-table th {
   text-align: left;
-  padding: 12px 14px 10px 14px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--db-primary);
-  background: var(--db-primary-lighter);
-  border-bottom: 1px solid rgba(70, 89, 242, 0.15);
-  font-weight: 600;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--db-text);
+  background: var(--db-surface-active);
+  border-bottom: 1px solid var(--db-border);
+  font-weight: 500;
 }
 
 .rpt-accuracy-table td {
@@ -2450,51 +2472,21 @@ body {
 }
 
 .rpt-accuracy-table tr:hover td {
-  background: #fafbfc;
+  background: var(--db-surface-hover);
 }
 
 .rpt-accuracy-table td:first-child {
   font-weight: 500;
-  color: var(--db-text-secondary);
+  font-size: 12px;
+  color: var(--db-text);
   white-space: nowrap;
   width: 140px;
-  background: var(--db-primary-lighter);
-  border-right: 1px solid var(--db-border-light);
+  background: var(--db-surface-active);
+  border-right: 1px solid var(--db-border);
   text-align: left;
   vertical-align: middle;
 }
 
-.rpt-accuracy-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 0;
-  color: var(--db-text-secondary);
-  white-space: nowrap;
-}
-
-.rpt-accuracy-status::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.rpt-accuracy-status.coerente { color: #166534; }
-.rpt-accuracy-status.coerente::before { background: #10b981; }
-
-.rpt-accuracy-status.parziale { color: #854d0e; }
-.rpt-accuracy-status.parziale::before { background: #f59e0b; }
-
-.rpt-accuracy-status.non-supportato { color: #991b1b; }
-.rpt-accuracy-status.non-supportato::before { background: #ef4444; }
-
-.rpt-accuracy-status.mancante,
-.rpt-accuracy-status.n\\/a { color: #475569; }
-.rpt-accuracy-status.mancante::before,
-.rpt-accuracy-status.n\\/a::before { background: #94a3b8; }
 
 .rpt-ts-pill {
   display: inline-flex;
@@ -2528,33 +2520,25 @@ body {
    ══════════════════════════════════════════════════ */
 
 .rpt-slack-thread {
-  border: 1px solid rgba(70,89,242,.15);
+  border: 1px solid var(--db-border);
   border-radius: 8px;
   overflow: hidden;
   padding: 12px 0;
-  background: #f4f7ff;
+  background: var(--db-surface-hover);
   max-height: 480px;
   overflow-y: auto;
 }
 
 .rpt-slack-msg {
   display: flex;
-  gap: 14px;
-  padding: 8px 20px;
-  transition: background .1s ease;
-}
-
-.rpt-slack-msg:hover {
-  background: rgba(70,89,242,.04);
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 20px;
 }
 
 .rpt-slack-msg.reply {
   padding-left: 16px;
   background: transparent;
-}
-
-.rpt-slack-msg.reply:hover {
-  background: rgba(70,89,242,.04);
 }
 
 .rpt-slack-avatar {

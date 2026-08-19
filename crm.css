@@ -438,6 +438,8 @@
   background:#fff;color:var(--pl-gray-700);
   transition:all .15s;
   display:inline-flex;align-items:center;gap:6px;
+  height: 32px;
+  box-sizing: border-box;
 }
 .crm-detail-btn:hover{
   background:var(--pl-gray-50);
@@ -446,6 +448,8 @@
 .crm-detail-btn-priority{
   background:var(--pl-blue);
   color:#fff;border-color:var(--pl-blue);
+  width: 165px;
+  justify-content: center;
 }
 .crm-detail-btn-priority:hover{
   background:#1d4ed8;border-color:#1d4ed8;
@@ -458,6 +462,9 @@
   background:#fef2f2;color:#dc2626;
   border-color:#fecaca;
 }
+.crm-detail-btn-priority .btn-added-hover { display: none; }
+.crm-detail-btn-priority.added:hover .btn-added-default { display: none; }
+.crm-detail-btn-priority.added:hover .btn-added-hover { display: inline; }
 
 /* ── Collapsible sections ── */
 .crm-section{
@@ -633,7 +640,7 @@
   flex-shrink:0;
 }
 .crm-priority-slot{
-  border:1.5px dashed var(--pl-gray-300);
+  border:1px dashed var(--pl-gray-300);
   border-radius:var(--pl-radius-sm);
   padding:10px 12px;
   display:flex;align-items:center;gap:10px;
@@ -1130,17 +1137,13 @@
 
 /* ── Form layout ── */
 .qual-form{
-  padding:0 24px 32px;
-  display:flex;flex-direction:column;gap:0;
+  padding:16px 24px 32px;
+  display:flex;flex-direction:column;gap:24px;
 }
 
 /* ── Form field row ── */
 .qual-form-field{
-  padding:16px 0;
-  border-bottom:1px solid var(--pl-gray-100);
-}
-.qual-form-field:last-child{
-  border-bottom:none;
+  /* Field container */
 }
 
 /* ── Field label ── */
@@ -1291,22 +1294,54 @@
 
 /* ── Last-activity badge (detail header) ── */
 .qual-last-activity{
-  display:flex;flex-direction:column;gap:4px;
-  padding:10px 12px;
-  border-radius:var(--pl-radius-xs);
-  border:1px solid #bbf7d0;
-  background:#f0fdf4;
-  font-size:12px;color:#15803d;
-  margin-top:12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--pl-radius-xs);
+  border: 1px solid var(--pl-gray-200);
+  background: #fff;
+  margin-top: 16px;
 }
-.qual-last-activity-content{
-  display:flex;align-items:center;gap:6px;
-  font-weight:600;
+.qual-last-activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pl-gray-100);
+  color: var(--pl-gray-600);
+  flex-shrink: 0;
 }
-.qual-last-activity-detail{
-  font-size:11px;color:#16a34a;
-  font-weight:400;
-  padding-left:20px;
+.qual-last-activity-body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 3px;
+}
+.qual-last-activity-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pl-gray-800);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qual-last-activity-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  line-height: 1;
+}
+.qual-last-activity-detail {
+  font-size: 12px;
+  color: var(--pl-gray-500);
+  font-weight: 400;
 }
 
 /* ── Detail aside flex for sticky footer ── */

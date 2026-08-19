@@ -386,7 +386,7 @@ function renderLeadDetail(lead) {
     <!-- Actions -->
     <div class="crm-detail-actions">
       <button class="crm-detail-btn crm-detail-btn-priority${isPrioritized ? ' added' : ''}" id="crm-btn-priority" data-lead-id="${lead.id}">
-        ${isPrioritized ? '✓ Nella lista' : '+ Aggiungi alla priorità'}
+        ${isPrioritized ? '<span class="btn-added-default">✓ Nella lista</span><span class="btn-added-hover">× Rimuovi lead</span>' : '+ Aggiungi alla priorità'}
       </button>
     </div>
 
@@ -554,7 +554,7 @@ function toggleLeadPriority(leadId) {
       if (btn) {
         const isPrioritized = crmPriorityOrder.includes(leadId);
         btn.className = `crm-detail-btn crm-detail-btn-priority${isPrioritized ? ' added' : ''}`;
-        btn.textContent = isPrioritized ? '✓ Nella lista' : '+ Aggiungi alla priorità';
+        btn.innerHTML = isPrioritized ? '<span class="btn-added-default">✓ Nella lista</span><span class="btn-added-hover">× Rimuovi lead</span>' : '+ Aggiungi alla priorità';
       }
     }
   }
@@ -590,7 +590,9 @@ function renderPrioritySlots() {
           <span class="crm-priority-slot-company">${lead.contact.name}</span>
           <span class="crm-priority-slot-contact">${lead.company}</span>
         </div>
-        <button class="crm-priority-slot-remove" data-lead-id="${lead.id}" title="Rimuovi">×</button>
+        <button class="crm-priority-slot-remove" data-lead-id="${lead.id}" title="Rimuovi">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       `;
 
       // Remove button
