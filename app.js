@@ -1453,6 +1453,19 @@ function bindHandoffComposer(lead) {
 
     if (isHandoffTransition) {
       replyCountPerChannel['dm-sara'] = 999;
+      
+      // Save full thread for report
+      if (typeof analytics !== 'undefined') {
+        if (!analytics.handoff) analytics.handoff = {};
+        analytics.handoff.slackThread = channelHistory['dm-sara'].map((m, idx) => ({
+          sender: m.sender === 'user' ? candidateName : m.senderName,
+          role: m.sender === 'user' ? 'SDR Inbound' : 'Account Executive',
+          text: m.content,
+          timestamp: wsNow(),
+          isReply: idx > 0
+        }));
+      }
+
       await wsDelay(2500);
       triggerSlackPostHandoff(lead);
     } else {
@@ -1625,6 +1638,18 @@ function bindBuilderComposer(lead) {
 
     if (isHandoffTransition) {
       replyCountPerChannel['dm-marco'] = 999;
+      
+      // Save process improvements thread for report
+      if (typeof analytics !== 'undefined') {
+        analytics.processThread = channelHistory['dm-marco'].map((m, idx) => ({
+          sender: m.sender === 'user' ? candidateName : m.senderName,
+          role: m.sender === 'user' ? 'SDR Inbound' : 'Sales Manager',
+          text: m.content,
+          timestamp: wsNow(),
+          isReply: idx > 0
+        }));
+      }
+
       // Show Gabriel review transition banner/note and button
       await wsDelay(1500);
       await showTyping(team.marco.name, 1500);
@@ -1881,6 +1906,18 @@ async function closeFounderReview() {
 
   // ── Silently save session to server for recruiter dashboard ──
   analytics.totalTime = Date.now() - analytics.startTime;
+  
+  // Save founder thread for report
+  if (typeof analytics !== 'undefined') {
+    analytics.founderThread = channelHistory['dm-gabriel'].map((m, idx) => ({
+      sender: m.sender === 'user' ? candidateName : m.senderName,
+      role: m.sender === 'user' ? 'SDR Inbound' : 'Founder & CEO',
+      text: m.content,
+      timestamp: wsNow(),
+      isReply: idx > 0
+    }));
+  }
+
   try {
     if (typeof window.getCallRecording === 'function') {
       const b64Audio = await window.getCallRecording();

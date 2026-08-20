@@ -665,7 +665,7 @@ function renderDetail(s) {
         <span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>
         Sintesi Alpha AI
       </div>
-      <div class="rpt-hdr-ai-text">${escapeHtml(ev.recExplain || '')}</div>
+      <div class="rpt-hdr-ai-text">${escapeHtml(ev.candidateSummary || ev.recExplain || '')}</div>
     </div>  `;
 
   // ── NAVIGATION ── (Removed per request)
@@ -781,43 +781,25 @@ function renderDetail(s) {
       <div class="crm-comp-grid">
         ${(() => {
           const fb = ev.competencyFeedback || {};
-          const comps = [
-            { 
-              name: 'Giudizio commerciale', 
-              def: 'Valuta la capacità di identificare il lead con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', 
-              status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', 
-              desc: fb.p1_giudizio_commerciale || (crmScore >= 85 ? 'Hai identificato correttamente il lead con il maggior potenziale commerciale.' : 
-                    crmScore >= 70 ? 'Hai individuato un lead ad alto potenziale, anche se non la prima scelta assoluta.' : 
-                    crmScore >= 50 ? 'La scelta del lead riflette solo parzialmente il reale potenziale commerciale.' : 
-                    'Non hai identificato il lead prioritario o i criteri usati non sono abbastanza solidi.') 
-            },
-            { 
-              name: 'Riconoscimento dei segnali d\'acquisto', 
-              def: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto, come pain, urgenza, interesse, budget e processo decisionale.', 
-              status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', 
-              desc: fb.p1_riconoscimento_segnali || (crmScore >= 80 ? 'Hai interpretato correttamente pain, urgenza e livello di interesse.' : 
-                    crmScore >= 60 ? 'Hai colto alcuni segnali d\'acquisto, ma ne hai tralasciati altri importanti.' : 
-                    'Forte difficoltà nell\'interpretare i segnali chiave d\'acquisto e di urgenza.') 
-            },
-            { 
-              name: 'Prioritizzazione dei lead', 
-              def: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando la giusta priorità a ciascuna opportunità.', 
-              status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', 
-              desc: fb.p1_prioritizzazione_lead || (crmScore >= 85 ? 'L\'ordine dei lead riflette una logica commerciale perfetta e coerente.' : 
-                    crmScore >= 70 ? 'La prioritizzazione ha senso logico nella maggior parte delle assegnazioni.' : 
-                    crmScore >= 50 ? 'Ci sono discrepanze nell\'ordine commerciale assegnato ai lead minori.' : 
-                    'L\'ordine assegnato sembra casuale o basato su metriche errate.') 
-            },
-            { 
-              name: 'Coerenza della motivazione', 
-              def: 'Valuta quanto la motivazione fornita è coerente con le informazioni disponibili e supporta in modo logico le decisioni prese.', 
-              status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', 
-              desc: fb.p1_coerenza_motivazione || (crmScore >= 80 ? 'La motivazione è ben strutturata e supporta la decisione presa.' : 
-                    crmScore >= 60 ? 'La motivazione è presente ma manca di profondità commerciale.' : 
-                    'La motivazione è insufficiente, incoerente o del tutto assente.') 
-            }
-          ];
-          const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              let comps = [];
+              const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.crmPrioritization) {
+                const cmp = ev.phases.crmPrioritization.competencies;
+                const nameMap = { commercialJudgment: 'Giudizio commerciale', buyingSignals: 'Riconoscimento dei segnali d\'acquisto', leadPrioritization: 'Prioritizzazione dei lead', motivationCoherence: 'Coerenza della motivazione' };
+                const defMap = { commercialJudgment: 'Valuta la capacità di identificare il lead con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', buyingSignals: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto, come pain, urgenza, interesse, budget e processo decisionale.', leadPrioritization: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando la giusta priorità a ciascuna opportunità.', motivationCoherence: 'Valuta quanto la motivazione fornita è coerente con le informazioni disponibili e supporta in modo logico le decisioni prese.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  comps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                comps = [
+                  { name: 'Giudizio commerciale', def: 'Valuta la capacità di identificare il lead con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_giudizio_commerciale || (crmScore >= 85 ? 'Hai identificato correttamente il lead con il maggior potenziale commerciale.' : crmScore >= 70 ? 'Hai individuato un lead ad alto potenziale, anche se non la prima scelta assoluta.' : crmScore >= 50 ? 'La scelta del lead riflette solo parzialmente il reale potenziale commerciale.' : 'Non hai identificato il lead prioritario o i criteri usati non sono abbastanza solidi.') },
+                  { name: 'Riconoscimento dei segnali d\'acquisto', def: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto, come pain, urgenza, interesse, budget e processo decisionale.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_riconoscimento_segnali || (crmScore >= 80 ? 'Hai interpretato correttamente pain, urgenza e livello di interesse.' : crmScore >= 60 ? 'Hai colto alcuni segnali d\'acquisto, ma ne hai tralasciati altri importanti.' : 'Forte difficoltà nell\'interpretare i segnali chiave d\'acquisto e di urgenza.') },
+                  { name: 'Prioritizzazione dei lead', def: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando la giusta priorità a ciascuna opportunità.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_prioritizzazione_lead || (crmScore >= 85 ? 'L\'ordine dei lead riflette una logica commerciale perfetta e coerente.' : crmScore >= 70 ? 'La prioritizzazione ha senso logico nella maggior parte delle assegnazioni.' : crmScore >= 50 ? 'Ci sono discrepanze nell\'ordine commerciale assegnato ai lead minori.' : 'L\'ordine assegnato sembra casuale o basato su metriche errate.') },
+                  { name: 'Coerenza della motivazione', def: 'Valuta quanto la motivazione fornita è coerente con le informazioni disponibili e supporta in modo logico le decisioni prese.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_coerenza_motivazione || (crmScore >= 80 ? 'La motivazione è ben strutturata e supporta la decisione presa.' : crmScore >= 60 ? 'La motivazione è presente ma manca di profondità commerciale.' : 'La motivazione è insufficiente, incoerente o del tutto assente.') }
+                ];
+              }
           return comps.map(c => `
             <div class="crm-comp-item">
               <div class="crm-comp-name">
@@ -991,10 +973,18 @@ function renderDetail(s) {
             <div class="rpt-key-moments">
               <div class="rpt-key-moments-title">Momenti chiave della chiamata</div>
               ${(() => {
+                if (ev.assessmentVersion >= '2.0' && ev.phases?.discovery?.keyMoments?.length > 0) {
+                  return ev.phases.discovery.keyMoments.map(km => `
+                <div class="rpt-key-moment" onclick="showToast('Riproduzione da ${km.timestamp}...')">
+                    <span class="rpt-ts-pill" style="margin-left: 0; pointer-events: none;"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>${km.timestamp}</span>
+                  <span class="rpt-km-text"><strong>[${escapeHtml(km.speaker)}]:</strong> ${escapeHtml(km.excerpt)} <br><span style="color:var(--db-text-muted);font-size:12px;opacity:0.8;">${escapeHtml(km.relevance)}</span></span>
+                </div>
+              `).join('');
+                }
+                
                 const msgList = messages && messages.length > 0 ? messages : (transcript && transcript.length > 0 ? transcript : []);
                 if (!msgList || msgList.length === 0) return '<div class="rpt-key-moment"><span class="rpt-km-text">Nessun momento chiave disponibile.</span></div>';
                 
-                // Pick up to 3 messages from the prospect to highlight
                 const prospectMsgs = msgList.map((m, i) => ({ ...m, idx: i })).filter(m => (m.role === 'assistant' || m.speaker === 'prospect'));
                 if (prospectMsgs.length === 0) return '<div class="rpt-key-moment"><span class="rpt-km-text">Momenti chiave non disponibili.</span></div>';
 
@@ -1031,13 +1021,25 @@ function renderDetail(s) {
           <div class="crm-comp-grid">
             ${(() => {
               const fb = ev.competencyFeedback || {};
-              const callComps = [
-                { name: 'Esplorazione dei bisogni', def: 'Valuta la capacità di esplorare il contesto del prospect, identificando bisogni, pain point e informazioni rilevanti attraverso domande efficaci.', status: callScore >= 80 ? 'excellent' : callScore >= 60 ? 'solid' : 'adequate', score: callScore >= 80 ? 92 : 75, desc: fb.p2_esplorazione_bisogni || 'Hai lasciato spazio al prospect dimostrando un ottimo listen ratio.' },
-                { name: 'Qualificazione dell’opportunità', def: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche e contesto.', status: callScore >= 85 ? 'excellent' : callScore >= 65 ? 'solid' : 'adequate', score: callScore >= 85 ? 88 : 70, desc: fb.p2_qualificazione_tecnica || 'Hai identificato con chiarezza pain e timeline, leggermente meno il budget.' },
-                { name: 'Gestione delle obiezioni', def: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect, mantenendo il focus sugli obiettivi della conversazione.', status: callScore >= 80 ? 'solid' : callScore >= 50 ? 'adequate' : 'needs-work', score: callScore >= 80 ? 85 : 60, desc: fb.p2_riconoscimento_budget || "Hai gestito l'obiezione sul prezzo proponendo subito una demo di valore." },
-                { name: 'Controllo della conversazione', def: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, accompagnando il prospect verso il prossimo passo.', status: callScore >= 90 ? 'excellent' : callScore >= 70 ? 'solid' : 'adequate', score: callScore >= 90 ? 95 : 80, desc: fb.p2_gestione_flusso || 'Il tono di voce era sempre rassicurante e la parlata fluida.' }
-              ];
+              let callComps = [];
               const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.discovery) {
+                const cmp = ev.phases.discovery.competencies;
+                const nameMap = { needsExploration: 'Esplorazione dei bisogni', opportunityQualification: 'Qualificazione dell’opportunità', objectionHandling: 'Gestione delle obiezioni', conversationControl: 'Controllo della conversazione' };
+                const defMap = { needsExploration: 'Valuta la capacità di esplorare il contesto del prospect, identificando bisogni, pain point e informazioni rilevanti attraverso domande efficaci.', opportunityQualification: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche e contesto.', objectionHandling: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect, mantenendo il focus sugli obiettivi della conversazione.', conversationControl: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, accompagnando il prospect verso il prossimo passo.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  callComps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                callComps = [
+                  { name: 'Esplorazione dei bisogni', def: 'Valuta la capacità di esplorare il contesto del prospect, identificando bisogni, pain point e informazioni rilevanti attraverso domande efficaci.', status: callScore >= 80 ? 'excellent' : callScore >= 60 ? 'solid' : 'adequate', score: callScore >= 80 ? 92 : 75, desc: fb.p2_esplorazione_bisogni || 'Hai lasciato spazio al prospect dimostrando un ottimo listen ratio.' },
+                  { name: 'Qualificazione dell’opportunità', def: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche e contesto.', status: callScore >= 85 ? 'excellent' : callScore >= 65 ? 'solid' : 'adequate', score: callScore >= 85 ? 88 : 70, desc: fb.p2_qualificazione_tecnica || 'Hai identificato con chiarezza pain e timeline, leggermente meno il budget.' },
+                  { name: 'Gestione delle obiezioni', def: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect, mantenendo il focus sugli obiettivi della conversazione.', status: callScore >= 80 ? 'solid' : callScore >= 50 ? 'adequate' : 'needs-work', score: callScore >= 80 ? 85 : 60, desc: fb.p2_riconoscimento_budget || "Hai gestito l'obiezione sul prezzo proponendo subito una demo di valore." },
+                  { name: 'Controllo della conversazione', def: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, accompagnando il prospect verso il prossimo passo.', status: callScore >= 90 ? 'excellent' : callScore >= 70 ? 'solid' : 'adequate', score: callScore >= 90 ? 95 : 80, desc: fb.p2_gestione_flusso || 'Il tono di voce era sempre rassicurante e la parlata fluida.' }
+                ];
+              }
               return callComps.map(c => `
                 <div class="crm-comp-item">
                   <div class="crm-comp-name">
@@ -1080,7 +1082,45 @@ function renderDetail(s) {
   ];
   const filledCount = crmFields.filter(f => f.value && f.value.trim()).length;
 
-  const accuracyHtml = `
+  let accuracyHtml = '';
+  if (ev.assessmentVersion >= '2.0' && ev.phases?.qualification?.crmComparison) {
+    accuracyHtml = `
+    <table class="rpt-accuracy-table">
+      <thead>
+        <tr>
+          <th>Campo</th>
+          <th>CRM del candidato</th>
+          <th>Emerso nella discovery call</th>
+          <th style="width: 15%;">Corrispondenza</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ev.phases.qualification.crmComparison.map(acc => {
+          const fieldMap = { pain: 'Pain', budget: 'Budget', decisionMaker: 'Decision Maker', timeline: 'Timeline', urgency: 'Urgenza', fit: 'Fit', nextStep: 'Next Step', notes: 'Note' };
+          const fLabel = fieldMap[acc.field] || acc.field;
+          const statusMap = { coherent: 'Coerente', partial: 'Parziale', inconsistent: 'Incoerente', not_emerged: 'Non emerso' };
+          const statusText = statusMap[acc.match] || acc.match;
+          const statusClass = (statusText || '').toLowerCase().replace(/ /g, '-');
+          
+          let aiTextHtml = escapeHtml(acc.callEvidence);
+          if (acc.reason) aiTextHtml += `<br><span style="color:var(--db-text-muted);font-size:12px;opacity:0.8;">${escapeHtml(acc.reason)}</span>`;
+          
+          const candText = acc.candidateValue && acc.candidateValue !== '(non compilato)' ? escapeHtml(acc.candidateValue) : '<span class="empty-val">Non compilato</span>';
+
+          return `
+            <tr>
+              <td>${escapeHtml(fLabel)}</td>
+              <td style="width: 40%;" class="cand-text">${candText}</td>
+              <td style="width: 35%;" class="ai-text">${aiTextHtml}</td>
+              <td style="width: 15%;"><span class="rpt-accuracy-status ${statusClass}">${escapeHtml(statusText)}</span></td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+    `;
+  } else {
+    accuracyHtml = `
     <table class="rpt-accuracy-table">
       <thead>
         <tr>
@@ -1092,16 +1132,13 @@ function renderDetail(s) {
       </thead>
       <tbody>
         ${crmFields.map(f => {
-          if (!f.value && f.label === 'Note') return ''; // Nascondi Note se vuote per ridurre rumore
-          
+          if (!f.value && f.label === 'Note') return '';
           const acc = accuracyData.find(a => a.field.toLowerCase() === f.label.toLowerCase()) || {};
           const status = acc.status || (f.value && f.value !== 'Nessuna nota aggiuntiva.' ? 'Coerente' : 'N/A');
           const statusClass = status.toLowerCase().replace(/ /g, '-');
-          
           const tsHtml = acc.callTimestamp ? ` <button class="rpt-ts-pill" onclick="event.stopPropagation(); showToast('Riproduzione audio da ${acc.callTimestamp}')"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>${escapeHtml(acc.callTimestamp)}</button>` : '';
           const aiText = acc.fromCall ? escapeHtml(acc.fromCall) : 'Nessun appunto rilevante perso.';
           const candText = f.value && f.value !== 'Nessuna nota aggiuntiva.' ? escapeHtml(f.value) : '<span class="empty-val">Non compilato</span>';
-
           return `
             <tr>
               <td>${escapeHtml(f.label)}</td>
@@ -1113,8 +1150,8 @@ function renderDetail(s) {
         }).join('')}
       </tbody>
     </table>
-  `;
-
+    `;
+  }
   const qualEl = document.getElementById('rpt-phase-qual');
   qualEl.classList.add('collapsed');
   qualEl.innerHTML = `
@@ -1149,13 +1186,24 @@ function renderDetail(s) {
           <div class="crm-comp-grid">
             ${(() => {
               const fb = ev.competencyFeedback || {};
-              const qualComps = [
-                { name: 'Identificazione delle informazioni chiave', def: 'Valuta la capacità di riconoscere e registrare le informazioni più rilevanti emerse durante la discovery.', status: qualScore >= 80 ? 'excellent' : qualScore >= 60 ? 'solid' : 'adequate', score: qualScore >= 80 ? 100 : 85, desc: fb.p3_identificazione_informazioni || 'Hai compilato perfettamente Pain, Decision Maker e Timeline.' },
-                { name: 'Accuratezza della documentazione', def: 'Valuta la capacità di riportare nel CRM informazioni fedeli alla conversazione, senza errori, omissioni o interpretazioni scorrette.', status: qualScore >= 90 ? 'excellent' : qualScore >= 70 ? 'solid' : 'adequate', score: qualScore >= 90 ? 100 : 80, desc: fb.p3_accuratezza_documentazione || 'Hai interpretato correttamente il fit aziendale senza inventare dati.' },
-                { name: 'Orientamento all’Account Executive', def: 'Valuta la capacità di documentare le informazioni in modo che l’Account Executive possa proseguire la trattativa senza dover recuperare ulteriori dettagli.', status: qualScore >= 80 ? 'excellent' : qualScore >= 50 ? 'solid' : 'adequate', score: qualScore >= 80 ? 100 : 70, desc: fb.p3_orientamento_ae || 'Le note aggiunte sono perfette per il follow-up del Sales Manager.' },
-                { name: 'Organizzazione delle informazioni', def: 'Valuta la capacità di organizzare le informazioni nel CRM in modo chiaro, strutturato e facilmente consultabile.', status: qualScore >= 85 ? 'excellent' : qualScore >= 60 ? 'solid' : 'adequate', score: qualScore >= 85 ? 100 : 80, desc: fb.p3_organizzazione_informazioni || 'La struttura logica dei campi scelti è molto chiara.' }
-              ];
+              let qualComps = [];
               const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.qualification) {
+                const cmp = ev.phases.qualification.competencies;
+                const nameMap = { qualificationCompleteness: 'Completezza della qualificazione', documentationAccuracy: 'Accuratezza della documentazione', aeOrientation: 'Orientamento all\'Account Executive', informationOrganization: 'Organizzazione delle informazioni' };
+                const defMap = { qualificationCompleteness: 'Valuta quanto il candidato ha registrato tutte le informazioni utili che erano effettivamente disponibili dopo la discovery.', documentationAccuracy: 'Valuta fedeltà, precisione e assenza di informazioni inventate o distorte.', aeOrientation: 'Valuta se il CRM consente all\'Account Executive di capire rapidamente opportunità, contesto, unknown rilevanti e next step.', informationOrganization: 'Valuta chiarezza, struttura, leggibilità e corretta collocazione delle informazioni.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  qualComps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                qualComps = [
+                  { name: 'Completezza della qualificazione', def: 'Valuta quanto le informazioni raccolte coprono i criteri essenziali per qualificare un lead (BANT o framework simili).', status: qualScore >= 80 ? 'excellent' : qualScore >= 60 ? 'solid' : 'adequate', score: qualScore >= 80 ? 90 : 70, desc: fb.p3_completezza_dati || 'Hai compilato quasi tutti i campi necessari per procedere.' },
+                  { name: 'Accuratezza della documentazione', def: 'Valuta la fedeltà e la precisione con cui le informazioni emerse in call sono state riportate nel CRM, senza alterazioni o omissioni.', status: qualScore >= 85 ? 'excellent' : qualScore >= 70 ? 'solid' : 'needs-work', score: qualScore >= 85 ? 95 : 65, desc: fb.p3_accuratezza_dati || 'Le note riflettono fedelmente quanto emerso nella chiamata.' },
+                  { name: 'Orientamento all’Account Executive', def: 'Valuta la capacità di strutturare le note in modo chiaro, utile e azionabile per chi dovrà prendere in carico il lead.', status: qualScore >= 75 ? 'solid' : qualScore >= 50 ? 'adequate' : 'needs-work', score: qualScore >= 75 ? 80 : 55, desc: fb.p3_utilita_ae || 'Le informazioni sono sufficienti per un AE, ma mancano i dettagli organizzativi.' }
+                ];
+              }
               return qualComps.map(c => `
                 <div class="crm-comp-item">
                   <div class="crm-comp-name">
@@ -1272,13 +1320,24 @@ function renderDetail(s) {
           <div class="crm-comp-grid">
             ${(() => {
               const fb = ev.competencyFeedback || {};
-              const handoffComps = [
-                { name: 'Contestualizzazione dell’opportunità', def: 'Valuta la capacità di presentare all’Account Executive il prospect, il problema emerso e il contesto commerciale necessario per comprendere rapidamente l’opportunità.', status: handoffScore >= 80 ? 'excellent' : handoffScore >= 60 ? 'solid' : 'adequate', score: handoffScore >= 80 ? 95 : 80, desc: fb.p4_contestualizzazione_opportunita || 'Il messaggio introduce in modo chiaro di chi si tratta e perché ha urgenza.' },
-                { name: 'Gestione delle richieste dell’AE', def: 'Valuta la capacità di comprendere le richieste di approfondimento dell’Account Executive e rispondere in modo pertinente, chiaro e utile al proseguimento della trattativa.', status: handoffScore >= 85 ? 'excellent' : handoffScore >= 65 ? 'solid' : 'adequate', score: handoffScore >= 85 ? 90 : 75, desc: fb.p4_gestione_richieste || 'Hai riassunto benissimo le problematiche di recruiting e scalabilità.' },
-                { name: 'Trasparenza informativa', def: 'Valuta la capacità di distinguere con chiarezza le informazioni effettivamente emerse da quelle non ancora disponibili, evitando supposizioni o ricostruzioni non supportate.', status: handoffScore >= 75 ? 'solid' : handoffScore >= 50 ? 'adequate' : 'needs-work', score: handoffScore >= 75 ? 85 : 65, desc: fb.p4_trasparenza_informativa || 'Indicazioni chiare per la Demo, ma manca un suggerimento su quali slide spingere.' },
-                { name: 'Allineamento operativo', def: 'Valuta la capacità di allinearsi con l’Account Executive sulle informazioni mancanti, sulle priorità e sulle azioni necessarie per proseguire la trattativa.', status: handoffScore >= 90 ? 'excellent' : handoffScore >= 70 ? 'solid' : 'adequate', score: handoffScore >= 90 ? 100 : 85, desc: fb.p4_allineamento_operativo || 'Messaggio professionale, ben formattato e facile da leggere per il team.' }
-              ];
+              let handoffComps = [];
               const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.handoff) {
+                const cmp = ev.phases.handoff.competencies;
+                const nameMap = { opportunityContext: 'Contestualizzazione dell\'opportunità', aeRequestHandling: 'Gestione delle richieste dell\'AE', informationTransparency: 'Trasparenza informativa', operationalAlignment: 'Allineamento operativo' };
+                const defMap = { opportunityContext: 'Capacità di trasferire rapidamente prospect, problema, impatto e informazioni essenziali.', aeRequestHandling: 'Capacità di comprendere le richieste successive dell\'AE e rispondere in modo pertinente.', informationTransparency: 'Capacità di distinguere ciò che è noto, ciò che è inferito e ciò che manca.', operationalAlignment: 'Capacità di allinearsi su priorità, informazioni mancanti e azioni necessarie.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  handoffComps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                handoffComps = [
+                  { name: 'Contestualizzazione dell\'opportunità', def: 'Valuta la capacità di sintetizzare il prospect, il problema principale e il motivo per cui l\'AE dovrebbe prendere in carico il deal.', status: handoffScore >= 80 ? 'excellent' : handoffScore >= 60 ? 'solid' : 'adequate', score: handoffScore >= 80 ? 88 : 65, desc: fb.p4_contesto || 'Hai fornito il contesto base in modo chiaro.' },
+                  { name: 'Gestione delle richieste dell\'AE', def: 'Valuta la reattività e la precisione nel rispondere alle domande di approfondimento dell\'Account Executive in modo proattivo.', status: handoffScore >= 85 ? 'excellent' : handoffScore >= 65 ? 'solid' : 'needs-work', score: handoffScore >= 85 ? 90 : 60, desc: fb.p4_gestione_richieste || 'Hai risposto puntualmente a Sara senza perdere tempo.' },
+                  { name: 'Allineamento operativo', def: 'Valuta la capacità di concordare chiaramente i prossimi passi e chi farà cosa per portare avanti il deal.', status: handoffScore >= 75 ? 'solid' : 'adequate', score: handoffScore >= 75 ? 82 : 68, desc: fb.p4_allineamento || 'I next steps sono stati confermati correttamente.' }
+                ];
+              }
               return handoffComps.map(c => `
                 <div class="crm-comp-item">
                   <div class="crm-comp-name">
@@ -1307,6 +1366,42 @@ function renderDetail(s) {
   const processClass = getScoreClass(processScore);
   const processEl = document.getElementById('rpt-phase-process');
   processEl.classList.add('collapsed');
+
+  const processThread = an.processThread || [];
+  let processHtml = '';
+  if (processThread.length > 0) {
+    processHtml = processThread.map(msg => {
+      const msgInitials = msg.sender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isManager = msg.role.toLowerCase().includes('manager') || msg.role.toLowerCase().includes('sales');
+      const avatarClass = isManager ? 'avatar-ae' : 'avatar-sdr';
+      return `
+        <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
+          <div class="rpt-slack-msg-hdr">
+            <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
+            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
+            <span class="rpt-slack-msg-time">${msg.timestamp}</span>
+          </div>
+          <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Fallback if processThread is missing (e.g. old sessions)
+    const fallbackText = an.builderMindset?.text || 'Miglioramenti proposti non disponibili (sessione vecchia).';
+    processHtml = `
+      <div class="rpt-slack-msg">
+        <div class="rpt-slack-msg-hdr">
+          <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+          <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+          <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+          <span class="rpt-slack-msg-time">--:--</span>
+        </div>
+        <div class="rpt-slack-msg-text">${escapeHtml(fallbackText)}</div>
+      </div>
+    `;
+  }
+
   processEl.innerHTML = `
     <div class=\"rpt-phase-hdr\" onclick=\"togglePhase(this)\">
       <div class=\"rpt-phase-hdr-left\">
@@ -1325,33 +1420,7 @@ function renderDetail(s) {
         <div class="rpt-subsection">
           <div class="crm-col-title" style="margin-bottom: 16px;">Conversazione con il Sales Manager</div>
           <div class="rpt-slack-thread">
-            <div class="rpt-slack-msg">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                <span class="rpt-slack-msg-time">10:15</span>
-              </div>
-              <div class="rpt-slack-msg-text">Ho notato che il tasso di conversione dal form al primo meeting è sceso del 15%. Suggerisco di snellire i campi obbligatori o implementare un tool di booking diretto.</div>
-            </div>
-            <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-ae">SO</div>
-                <span class="rpt-slack-msg-name">Sales Ops</span>
-                <span class="rpt-slack-msg-role avatar-ae">Manager</span>
-                <span class="rpt-slack-msg-time">10:42</span>
-              </div>
-              <div class="rpt-slack-msg-text">Ottima osservazione, è un dato su cui volevamo indagare. Hai in mente un tool specifico?</div>
-            </div>
-            <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                <span class="rpt-slack-msg-time">10:45</span>
-              </div>
-              <div class="rpt-slack-msg-text">Possiamo usare Calendly o Chili Piper direttamente nella thank you page. In questo modo eliminiamo due passaggi intermedi via email, che attualmente generano drop-off.</div>
-            </div>
+            ${processHtml}
           </div>
         </div>
         
@@ -1404,6 +1473,42 @@ function renderDetail(s) {
   const founderClass = getScoreClass(founderScore);
   const founderEl = document.getElementById('rpt-phase-founder');
   founderEl.classList.add('collapsed');
+
+  const founderThread = an.founderThread || [];
+  let founderHtml = '';
+  if (founderThread.length > 0) {
+    founderHtml = founderThread.map(msg => {
+      const msgInitials = msg.sender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isFounder = msg.role.toLowerCase().includes('founder') || msg.role.toLowerCase().includes('ceo');
+      const avatarClass = isFounder ? 'avatar-ae' : 'avatar-sdr';
+      return `
+        <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
+          <div class="rpt-slack-msg-hdr">
+            <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
+            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
+            <span class="rpt-slack-msg-time">${msg.timestamp}</span>
+          </div>
+          <div class="rpt-slack-msg-text">${escapeHtml(msg.text)}</div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Fallback if founderThread is missing
+    const fallbackText = "Intervista non disponibile (sessione vecchia).";
+    founderHtml = `
+      <div class="rpt-slack-msg">
+        <div class="rpt-slack-msg-hdr">
+          <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
+          <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
+          <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
+          <span class="rpt-slack-msg-time">--:--</span>
+        </div>
+        <div class="rpt-slack-msg-text">${escapeHtml(fallbackText)}</div>
+      </div>
+    `;
+  }
+
   founderEl.innerHTML = `
     <div class=\"rpt-phase-hdr\" onclick=\"togglePhase(this)\">
       <div class=\"rpt-phase-hdr-left\">
@@ -1422,42 +1527,7 @@ function renderDetail(s) {
         <div class="rpt-subsection">
           <div class="crm-col-title" style="margin-bottom: 16px;">Conversazione con il Founder</div>
           <div class="rpt-slack-thread">
-            <div class="rpt-slack-msg">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-ae">MR</div>
-                <span class="rpt-slack-msg-name">Marco Rossi</span>
-                <span class="rpt-slack-msg-role avatar-ae">Founder</span>
-                <span class="rpt-slack-msg-time">14:00</span>
-              </div>
-              <div class="rpt-slack-msg-text">Ciao, partiamo dalla fine: qual è il tuo obiettivo professionale nei prossimi 3 anni?</div>
-            </div>
-            <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                <span class="rpt-slack-msg-time">14:02</span>
-              </div>
-              <div class="rpt-slack-msg-text">Vorrei padroneggiare il ciclo di vendita inbound per poi transizionare in un ruolo di Account Executive, contribuendo direttamente alla crescita del fatturato. E se ci fosse l'opportunità, mi piacerebbe fare coaching ai futuri SDR.</div>
-            </div>
-            <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-ae">MR</div>
-                <span class="rpt-slack-msg-name">Marco Rossi</span>
-                <span class="rpt-slack-msg-role avatar-ae">Founder</span>
-                <span class="rpt-slack-msg-time">14:05</span>
-              </div>
-              <div class="rpt-slack-msg-text">Molto chiaro. E come valuteresti la tua ultima performance durante questa simulazione, specialmente per la parte di handoff?</div>
-            </div>
-            <div class="rpt-slack-msg reply">
-              <div class="rpt-slack-msg-hdr">
-                <div class="rpt-slack-avatar avatar-sdr">${initials}</div>
-                <span class="rpt-slack-msg-name">${escapeHtml(fullName)}</span>
-                <span class="rpt-slack-msg-role avatar-sdr">SDR Inbound</span>
-                <span class="rpt-slack-msg-time">14:08</span>
-              </div>
-              <div class="rpt-slack-msg-text">Credo di aver identificato perfettamente il pain point, ma avrei potuto spingere di più sulla quantificazione esatta del budget disponibile. Inoltre, nel messaggio all'Account Executive, avrei dovuto evidenziare più nettamente il competitor in gioco. È sicuramente la prima cosa che correggerò alla prossima telefonata.</div>
-            </div>
+            ${founderHtml}
           </div>
         </div>
         
