@@ -1789,7 +1789,13 @@ INPUT DELLA SIMULAZIONE
 ==================================================
 
 FASE 1 — PRIORITIZZAZIONE CRM
-Lead analizzati (context): Marchetti, Ferraro, GreenBuild, Parisi, Rossi (variabili per potenziale).
+Dati forniti al candidato nel CRM (Base Knowledge per la valutazione):
+- Marchetti (Edilizia Marchetti): Form "Cerchiamo una soluzione per gestire i cantieri... usiamo Excel". Settore costruzioni, 45 dipendenti, revenue 8M. (Lead ad alto potenziale/pronto).
+- GreenBuild SpA: Form "Sto esplorando soluzioni per il prossimo anno. Nessuna urgenza". 120 dipendenti, 22M. (Lead a medio potenziale, tempistiche lunghe).
+- Ferraro (Costruzioni Ferraro): Referral diretto da cliente top, mail: "Vorremmo capire come Pillar potrebbe aiutarci". 200+ dipendenti, 45M. (Lead ad alto potenziale ma da qualificare).
+- Parisi (Studio Tecnico): Form "Vorrei info sui vostri servizi". 8 dipendenti, revenue 600k. Settore progettazione. (Lead a bassissimo potenziale, fuori target per dimensioni).
+- Rossi (Infrastrutture): Incontrata in fiera, Office Manager. "Mandate materiale". (Lead non qualificato, non decisore, interesse debole).
+
 - Ordine di priorità deciso dal candidato: ${JSON.stringify(crm.priorityOrder || [])}
 - Motivazione scritta: ${crm.priorityMotivation || '(non compilata)'}
 
