@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import 'dotenv/config';
 import express from 'express';
 import { dirname, join } from 'path';
