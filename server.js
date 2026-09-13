@@ -395,12 +395,34 @@ app.get('/', (req, res) => {
 // ══════════════════════════════════════════════════════════
 // CV UPLOAD ENDPOINT
 // ══════════════════════════════════════════════════════════
-app.post('/api/upload-cv', upload.single('cv'), (req, res) => {
+app.post('/api/upload-cv', upload.single('cv'), async (req, res) => {
   try {
     const finalName = req.file.filename + '.pdf';
-    fs.renameSync(req.file.path, req.file.path + '.pdf');
-    // Return the URL directly to the frontend, which will include it in save-session
-    res.json({ success: true, cvUrl: `/cvs/${finalName}` });
+    const filePath = req.file.path;
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    // Upload su Supabase Storage
+    const { data, error } = await supabase.storage.from('cvs').upload(finalName, fileBuffer, {
+      contentType: 'application/pdf',
+      upsert: true
+    });
+    
+    if (error) {
+      console.error('Supabase CV upload error:', error);
+      throw error;
+    }
+    
+    const { data: publicData } = supabase.storage.from('cvs').getPublicUrl(finalName);
+    
+    // Pulizia locale
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    
+    res.json({ success: true, cvUrl: publicData.publicUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -2873,11 +2895,19 @@ app.post('/api/save-session', async (req, res) => {
         if (audioRes.ok) {
           const arrayBuffer = await audioRes.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
-          const recordingsDir = join(__dirname, 'recordings');
-          if (!fs.existsSync(recordingsDir)) fs.mkdirSync(recordingsDir, { recursive: true });
           const filename = `${sessionId}.mp3`;
-          fs.writeFileSync(join(recordingsDir, filename), buffer);
-          analytics.call.audioUrl = `/recordings/${filename}`;
+          
+          const { error: uploadError } = await supabase.storage.from('recordings').upload(filename, buffer, {
+            contentType: 'audio/mpeg',
+            upsert: true
+          });
+          
+          if (!uploadError) {
+             const { data: pData } = supabase.storage.from('recordings').getPublicUrl(filename);
+             analytics.call.audioUrl = pData.publicUrl;
+          } else {
+             console.error('Supabase 11Labs upload error:', uploadError);
+          }
         }
       } catch (err) {
         console.error('ElevenLabs data fetch error:', err);
@@ -2890,18 +2920,23 @@ app.post('/api/save-session', async (req, res) => {
     // Handle base64 audio recording if present
     if (analytics.call && analytics.call.audioRecording) {
       try {
-        const recordingsDir = join(__dirname, 'recordings');
-        if (!fs.existsSync(recordingsDir)) {
-          fs.mkdirSync(recordingsDir, { recursive: true });
-        }
-        
         const matches = analytics.call.audioRecording.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
           const buffer = Buffer.from(matches[2], 'base64');
           const ext = matches[1].includes('webm') ? 'webm' : (matches[1].includes('mp4') ? 'mp4' : 'ogg');
           const filename = `${sessionId}.${ext}`;
-          fs.writeFileSync(join(recordingsDir, filename), buffer);
-          analytics.call.audioUrl = `/recordings/${filename}`;
+          
+          const { error: uploadError } = await supabase.storage.from('recordings').upload(filename, buffer, {
+            contentType: `audio/${ext}`,
+            upsert: true
+          });
+          
+          if (!uploadError) {
+            const { data: pData } = supabase.storage.from('recordings').getPublicUrl(filename);
+            analytics.call.audioUrl = pData.publicUrl;
+          } else {
+             console.error('Supabase Base64 upload error:', uploadError);
+          }
         }
       } catch (err) {
         console.error('Failed to save audio recording to file:', err);
