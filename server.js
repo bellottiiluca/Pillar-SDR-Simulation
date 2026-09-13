@@ -10,8 +10,9 @@ import { createClient } from '@supabase/supabase-js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import multer from 'multer';
-const cvsDir = join(__dirname, 'cvs');
-if (!fs.existsSync(cvsDir)) fs.mkdirSync(cvsDir);
+// Usa /tmp in produzione su Vercel (read-only file system fix)
+const cvsDir = process.env.VERCEL ? '/tmp' : join(__dirname, 'cvs');
+if (!process.env.VERCEL && !fs.existsSync(cvsDir)) fs.mkdirSync(cvsDir);
 const upload = multer({ dest: cvsDir });
 
 const SCORING_WEIGHTS_TEXT = `
