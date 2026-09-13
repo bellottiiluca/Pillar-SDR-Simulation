@@ -18,6 +18,7 @@ let callIsSpeaking = false;
 let callCurrentAudio = null;   // currently playing TTS audio
 let callUseSpeech = false;     // whether Web Speech API is available
 let callEnded = false;
+let callElevenLabsConversationId = null;
 
 // ── WebRTC State ──
 let callPeerConnection = null;
@@ -940,6 +941,7 @@ function finalizeCallAnalytics() {
 
   analytics.call.endTime = Date.now();
   analytics.call.callDuration = callTimerSeconds;
+  analytics.call.elevenLabsConversationId = callElevenLabsConversationId;
   analytics.call.messages = [...callMessages];
   analytics.call.exchangeCount = callExchangeCount;
 
@@ -960,6 +962,23 @@ function finalizeCallAnalytics() {
 // QUALIFICATION — CRM-INTEGRATED
 // ══════════════════════════════════════════
 function initQualificationCRM() {
+  
+  // Custom Slack toast for Qualification phase
+  setTimeout(() => {
+    if (typeof showSlackToast === 'function' && typeof playNotifSound === 'function') {
+      playNotifSound();
+      showSlackToast('andrea', 'Andrea Russo', '🔔 Appena entrato un nuovo inbound da Google Ads, sembra interessante');
+    }
+  }, 12000); // 12 seconds after qualification CRM opens
+
+  // Second custom Slack toast for Qualification phase (Coffee)
+  setTimeout(() => {
+    if (typeof showSlackToast === 'function' && typeof playNotifSound === 'function') {
+      playNotifSound();
+      showSlackToast('giulia', 'Giulia Ferro', 'Qualcuno vuole un caffè? Sto scendendo ☕️');
+    }
+  }, 25000); // 25 seconds after qualification CRM opens
+
   if (!callProspect) return;
 
   const lead = callProspect;
@@ -1222,8 +1241,9 @@ async function startElevenLabsCall(lead) {
     console.log(`[ElevenLabs] Connecting to agent: ${agentId} for lead: ${lead.id}`);
 
     callSession = await Conversation.startSession({
-      agentId: agentId,
+            agentId: agentId,
       onConnect: () => {
+        
         console.log("ElevenLabs: Connected!");
         updateConnectionStatus('status-realtime', 'Realtime Audio (ElevenLabs)');
         
@@ -1272,6 +1292,11 @@ async function startElevenLabsCall(lead) {
         console.error("ElevenLabs Error:", error);
       }
     });
+
+    if (callSession && typeof callSession.getId === 'function') {
+      callElevenLabsConversationId = callSession.getId();
+      console.log("ElevenLabs Conv ID captured after await:", callElevenLabsConversationId);
+    }
 
     // In ElevenLabs l'audio è gestito internamente dall'SDK e inviato al browser.
     
@@ -1464,6 +1489,15 @@ function startDiscoveryCall(lead) {
 
   // Switch to call phase
   showPhase('phase-call');
+  
+  // Custom Slack toast for Discovery Call
+  setTimeout(() => {
+    if (typeof showSlackToast === 'function' && typeof playNotifSound === 'function') {
+      playNotifSound();
+      showSlackToast('marco', 'Marco Conti', 'Siamo a 6/8 demo questa settimana, ne mancano 2 👀');
+    }
+  }, 15000); // 15 seconds after call starts
+
 
   // Show connecting screen
   setTimeout(() => {

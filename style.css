@@ -220,17 +220,13 @@ html,body{
   font-size:12px;font-weight:500;
   color:var(--pl-gray-600);
   box-shadow:var(--pl-shadow-sm);
-  transition:border-color .25s, box-shadow .25s, transform .25s;
+  
 }
 .boot-chip svg{
   color:var(--pl-gray-400);
   flex-shrink:0;
 }
-.boot-chip:hover{
-  border-color:var(--pl-gray-300);
-  box-shadow:0 4px 16px rgba(0,0,0,.07);
-  transform:translateY(-1px);
-}
+
 
 /* CTA Button — gradient style */
 .btn-start-sim{
@@ -644,7 +640,7 @@ html,body{
 .timer-text{font-size:11px;font-weight:600;color:var(--pl-gray-500);letter-spacing:.02em;position:relative;z-index:1}
 
 .founder-captions-area{
-  max-width:580px;text-align:center;min-height:80px;
+  max-width:580px;text-align:center;height:150px;
   display:flex;align-items:center;justify-content:center;
 }
 .founder-caption{

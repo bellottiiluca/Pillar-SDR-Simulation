@@ -5,12 +5,287 @@ import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+import multer from 'multer';
+const cvsDir = join(__dirname, 'cvs');
+if (!fs.existsSync(cvsDir)) fs.mkdirSync(cvsDir);
+const upload = multer({ dest: cvsDir });
+
+const SCORING_WEIGHTS_TEXT = `
+REGOLE MATEMATICHE E PESI UFFICIALI DELL'ASSESSMENT
+
+PESI DELLE FASI SULL'OVERALL SCORE:
+- Phase 1 (CRM Prioritization): 15%
+- Phase 2 (Discovery Call): 30%
+- Phase 3 (Qualification): 20%
+- Phase 4 (Handoff): 15%
+- Phase 5 (Process Improvement): 10%
+- Phase 6 (Founder Interview): 10%
+
+PESI DELLE SINGOLE COMPETENZE (rispetto alla propria Fase):
+Phase 1 (CRM): Commercial Judgment (30%), Buying Signals (25%), Lead Prioritization (25%), Motivation Coherence (20%).
+Phase 2 (Discovery): Needs Exploration (30%), Opportunity Qualification (30%), Objection Handling (20%), Conversation Control (20%).
+Phase 3 (Qualification): Qualification Completeness (25%), Documentation Accuracy (35%), AE Orientation (25%), Information Organization (15%).
+Phase 4 (Handoff): Opportunity Context (30%), AE Request Handling (25%), Information Transparency (30%), Operational Alignment (15%).
+Phase 5 (Process): Process Analysis (50%), Improvement Design (50%).
+Phase 6 (Founder): Professional Self-Awareness (40%), Coachability (60%).
+
+SOGLIE PER LA RECOMMENDATION FINALE:
+- 85 - 100: Strong Fit
+- 75 - 84: Good Fit
+- 60 - 74: Review
+- 0 - 59: Limited Fit
+`;
+
+const BEHAVIORAL_RUBRICS_TEXT = `
+BEHAVIORAL RUBRICS
+Le rubriche specifiche hanno priorità sulla generica interpretazione numerica della scala 0-100.
+Le fasce utilizzate sono:
+0–49 → Debole / non sufficientemente dimostrata
+50–69 → Parziale
+70–84 → Solida
+85–100 → Forte
+Non utilizzare automaticamente la parte alta delle fasce.
+100 deve essere estremamente raro e richiede una performance praticamente completa rispetto alle opportunità offerte dallo scenario.
+
+==================================================
+
+FASE 1 — PRIORITIZZAZIONE CRM
+commercialJudgment — GIUDIZIO COMMERCIALE
+0–49 — DEBOLE
+Il giudizio è guidato prevalentemente da segnali isolati o superficiali, come dimensione aziendale o singola interazione. Il candidato sovrastima o sottostima opportunità rilevanti senza integrare correttamente intenzione, bisogno, urgenza, qualità del contatto, valore e probabilità di conversione.
+50–69 — PARZIALE
+Riconosce alcuni elementi commercialmente rilevanti e individua parte delle opportunità interessanti, ma pesa male alcuni segnali o analizza le dimensioni commerciali in modo poco integrato.
+70–84 — SOLIDA
+Valuta le opportunità combinando correttamente più dimensioni commerciali. Riconosce i principali trade-off e non assume automaticamente che dimensione o fatturato determinino da soli la priorità.
+85–100 — FORTE
+Costruisce una lettura completa e coerente della pipeline, distinguendo valore potenziale e probabilità di conversione, interpretando segnali anche contrastanti e allocando la priorità sulla base del valore commerciale atteso.
+
+buyingSignals — RICONOSCIMENTO DEI SEGNALI D’ACQUISTO
+0–49 — DEBOLE
+Ignora o interpreta erroneamente segnali importanti e distingue poco tra interesse generico e intenzione commerciale concreta.
+50–69 — PARZIALE
+Riconosce alcuni segnali rilevanti, ma la loro interpretazione o ponderazione è incompleta. Alcuni elementi importanti vengono sottovalutati o sovrastimati.
+70–84 — SOLIDA
+Identifica correttamente i principali segnali di intent e comprende il diverso peso informativo di richiesta demo, pricing behavior, referral, pain, timing, engagement e ruolo del contatto.
+85–100 — FORTE
+Interpreta i segnali in modo integrato e contestuale, comprendendo come si rafforzano o contraddicono tra loro e quali implicazioni abbiano sulla probabilità e priorità commerciale.
+
+leadPrioritization — PRIORITIZZAZIONE DEI LEAD
+0–49 — DEBOLE
+Il ranking è largamente incoerente con le evidence disponibili o non mostra una logica commerciale riconoscibile.
+50–69 — PARZIALE
+Coglie alcune priorità principali, ma l’ordine presenta errori materiali e una parte della pipeline viene sovra o sottostimata.
+70–84 — SOLIDA
+L’ordine complessivo riflette correttamente l’intensità relativa delle opportunità. Eventuali posizioni discutibili rappresentano trade-off ragionevolmente difendibili.
+85–100 — FORTE
+Il ranking traduce con precisione il giudizio commerciale in una sequenza operativa, distinguendo efficacemente opportunità ad alta priorità, lead intermedi e opportunità esplorative o deboli.
+Non richiedere corrispondenza con un unico ranking prefissato.
+
+motivationCoherence — COERENZA DELLA MOTIVAZIONE
+0–49 — DEBOLE
+La motivazione è generica, contraddittoria o utilizza informazioni non disponibili. Non rende comprensibili le decisioni prese.
+50–69 — PARZIALE
+Contiene elementi corretti ma spiega solo parte del ranking o affronta poco i trade-off tra le opportunità.
+70–84 — SOLIDA
+È coerente con il ranking, utilizza evidence specifiche e spiega in modo comprensibile le principali decisioni commerciali.
+85–100 — FORTE
+Rende l’intero ranking pienamente comprensibile, seleziona le evidence più rilevanti e giustifica anche le decisioni meno ovvie senza assunzioni non supportate.
+
+==================================================
+
+FASE 2 — DISCOVERY CALL
+needsExploration — ESPLORAZIONE DEI BISOGNI
+0–49 — DEBOLE
+La discovery rimane superficiale o viene sostituita da pitch prematuro. Il candidato accetta le prime risposte senza follow-up significativi e non costruisce una comprensione sufficiente del problema.
+50–69 — PARZIALE
+Identifica il problema principale e parte del contesto, ma approfondisce poco cause, conseguenze, situazione attuale o impatto.
+70–84 — SOLIDA
+Esplora in modo strutturato problema e contesto, usa follow-up pertinenti e approfondisce almeno parte delle cause e dell’impatto. Rimangono lacune limitate.
+85–100 — FORTE
+Costruisce progressivamente una comprensione profonda del bisogno, collegando situazione attuale, problema, cause, conseguenze e impatto. Le domande successive derivano realmente dalle risposte del prospect.
+
+opportunityQualification — QUALIFICAZIONE DELL’OPPORTUNITÀ
+0–49 — DEBOLE
+Al termine della call rimangono poco chiari diversi elementi commercialmente fondamentali che il candidato avrebbe potuto ragionevolmente approfondire. Non emerge sufficiente chiarezza su come procedere.
+50–69 — PARZIALE
+Raccoglie alcune informazioni importanti, ma lascia lacune materiali su priorità, processo decisionale, timing, urgenza, vincoli o next step.
+70–84 — SOLIDA
+Raccoglie le informazioni necessarie per costruire un quadro sufficientemente chiaro dell’opportunità e approfondisce gli elementi più rilevanti senza trasformare la discovery in una checklist.
+85–100 — FORTE
+Qualifica l’opportunità in modo completo e naturale, comprendendo come problema, priorità, stakeholder, decision process, timing e next step si collegano tra loro. Al termine della call è chiaro perché e come l’opportunità dovrebbe procedere.
+
+objectionHandling — GESTIONE DELLE OBIEZIONI
+0–49 — DEBOLE
+Quando emerge una resistenza significativa, la ignora, la contraddice direttamente, risponde con pitch generico o perde l’obiettivo della conversazione.
+50–69 — PARZIALE
+Riconosce l’obiezione e tenta di rispondere, ma approfondisce poco la causa o fornisce una risposta solo parzialmente pertinente.
+70–84 — SOLIDA
+Riconosce e comprende la resistenza, risponde in modo pertinente e mantiene il dialogo produttivo, approfondendo quando necessario.
+85–100 — FORTE
+Gestisce le obiezioni come parte naturale della discovery, comprende la causa sottostante e risponde in modo preciso e coerente con quanto emerso, mantenendo fiducia e direzione.
+REGOLA:
+valuta soltanto le reali occasioni di gestione delle obiezioni presenti nella chiamata.
+Non inventare criticità quando il prospect non ha realmente espresso una resistenza.
+
+conversationControl — CONTROLLO DELLA CONVERSAZIONE
+0–49 — DEBOLE
+La conversazione è disorganizzata, eccessivamente dominata dal candidato o completamente guidata dal prospect. Il focus viene perso frequentemente.
+50–69 — PARZIALE
+Mantiene una struttura di base, ma presenta passaggi poco focalizzati, transizioni deboli o difficoltà nel guidare l’evoluzione della call.
+70–84 — SOLIDA
+Mantiene struttura, direzione e focus, ascolta il prospect e utilizza transizioni naturali. La conversazione conduce verso un next step comprensibile senza risultare eccessivamente scriptata.
+85–100 — FORTE
+Guida la conversazione con controllo naturale, adattando il percorso alle risposte del prospect, gestendo le digressioni e costruendo progressivamente un prossimo passo coerente.
+Talk ratio e durata NON determinano direttamente questa valutazione.
+
+==================================================
+
+FASE 3 — QUALIFICAZIONE CRM
+qualificationCompleteness — COMPLETEZZA DELLA QUALIFICAZIONE
+0–49 — DEBOLE
+Omette numerose informazioni commercialmente rilevanti che erano effettivamente emerse durante la discovery.
+50–69 — PARZIALE
+Registra gli elementi principali, ma perde alcune informazioni materialmente utili.
+70–84 — SOLIDA
+Riporta quasi tutte le informazioni rilevanti effettivamente disponibili. Le omissioni sono limitate e non compromettono significativamente la comprensione dell’opportunità.
+85–100 — FORTE
+Trasferisce nel CRM in modo completo e selettivo tutte le informazioni realmente utili, evitando sia omissioni materiali sia dettagli privi di valore operativo.
+NON penalizzare informazioni che non erano emerse.
+
+documentationAccuracy — ACCURATEZZA DELLA DOCUMENTAZIONE
+0–49 — DEBOLE
+Sono presenti informazioni inventate, significativamente distorte o contraddittorie rispetto alla call, tali da alterare materialmente la comprensione dell’opportunità.
+50–69 — PARZIALE
+La maggior parte delle informazioni principali è corretta, ma sono presenti una o più imprecisioni materiali, interpretazioni presentate come fatti o rappresentazioni poco fedeli.
+70–84 — SOLIDA
+La documentazione è sostanzialmente fedele alla conversazione. Eventuali imprecisioni sono limitate e gli unknown vengono generalmente rappresentati correttamente.
+85–100 — FORTE
+La scheda riflette con grande precisione quanto realmente emerso, distinguendo fatti, inferenze ragionevoli e informazioni non disponibili senza inventare dettagli.
+
+aeOrientation — ORIENTAMENTO ALL’ACCOUNT EXECUTIVE
+0–49 — DEBOLE
+Il CRM non consente all’AE di comprendere rapidamente situazione, problema, stakeholder, unknown o prossimo passo.
+50–69 — PARZIALE
+Fornisce una base utile, ma lascia poco chiari alcuni elementi necessari alla prosecuzione della trattativa.
+70–84 — SOLIDA
+Consente all’AE di comprendere rapidamente contesto, informazioni note, unknown e prossimo passo, riducendo significativamente la necessità di ricostruire la discovery.
+85–100 — FORTE
+La documentazione è costruita con chiara consapevolezza del lavoro dell’AE, prioritizza ciò che conta e permette di preparare efficacemente il passo successivo.
+
+informationOrganization — ORGANIZZAZIONE DELLE INFORMAZIONI
+0–49 — DEBOLE
+Le informazioni sono confuse, ripetitive, collocate nei campi sbagliati o difficili da consultare.
+50–69 — PARZIALE
+La struttura è comprensibile ma presenta ridondanze, formulazioni poco sintetiche o organizzazione non sempre efficace.
+70–84 — SOLIDA
+Le informazioni sono chiare, sintetiche, collocate correttamente e facilmente consultabili.
+85–100 — FORTE
+La documentazione è estremamente leggibile e operativa: ogni campo contiene l’informazione appropriata con sintesi efficace, senza perdita di significato o duplicazioni inutili.
+
+==================================================
+
+FASE 4 — HANDOFF ALL’ACCOUNT EXECUTIVE
+opportunityContext — CONTESTUALIZZAZIONE DELL’OPPORTUNITÀ
+0–49 — DEBOLE
+L’handoff non fornisce sufficiente contesto sul prospect, sul problema o sul motivo per cui l’AE dovrebbe occuparsi dell’opportunità.
+50–69 — PARZIALE
+Trasferisce alcune informazioni importanti, ma manca una gerarchia chiara o alcuni elementi commercialmente rilevanti.
+70–84 — SOLIDA
+Sintetizza prospect, problema, contesto e rilevanza dell’opportunità in modo sufficiente perché l’AE possa comprenderla rapidamente.
+85–100 — FORTE
+Sintetizza l’opportunità con grande efficacia, distingue ciò che conta da ciò che è secondario e fornisce all’AE il contesto necessario per prendere in carico il deal senza ricostruire l’intera discovery.
+
+aeRequestHandling — GESTIONE DELLE RICHIESTE DELL’AE
+0–49 — DEBOLE
+Non comprende le richieste, risponde in modo evasivo o poco pertinente oppure fornisce informazioni non supportate.
+50–69 — PARZIALE
+Comprende generalmente le domande, ma alcune risposte sono incomplete, poco precise o scarsamente operative.
+70–84 — SOLIDA
+Risponde in modo pertinente, chiaro e utile, recuperando correttamente le informazioni disponibili.
+85–100 — FORTE
+Comprende con precisione ciò che l’AE sta cercando e risponde in modo sintetico e operativo; quando un dato non è disponibile, lo dichiara chiaramente invece di colmare il vuoto con supposizioni.
+
+informationTransparency — TRASPARENZA INFORMATIVA
+0–49 — DEBOLE
+Presenta supposizioni, ricostruzioni o informazioni non verificate come fatti e non riconosce unknown rilevanti.
+50–69 — PARZIALE
+Distingue generalmente fatti e unknown, ma mantiene alcune ambiguità o inferenze non sufficientemente esplicitate.
+70–84 — SOLIDA
+Distingue chiaramente ciò che è stato confermato da ciò che non è noto, evita invenzioni e segnala correttamente gli elementi ancora da verificare.
+85–100 — FORTE
+Mostra elevata disciplina informativa, separando con chiarezza fatti, inferenze e unknown e permettendo all’AE di sapere esattamente su quali informazioni può fare affidamento.
+
+operationalAlignment — ALLINEAMENTO OPERATIVO
+0–49 — DEBOLE
+Al termine dell’handoff rimangono poco chiari priorità, informazioni da approfondire o prossimo passo.
+50–69 — PARZIALE
+Esiste un orientamento generale su come procedere, ma alcuni elementi operativi rimangono vaghi.
+70–84 — SOLIDA
+Chiarisce cosa sappiamo, cosa resta da approfondire e quali sono le azioni necessarie per proseguire l’opportunità.
+85–100 — FORTE
+Crea un allineamento molto chiaro su priorità, unknown e prossimi passi, anticipando in modo pertinente ciò che sarà utile approfondire senza oltrepassare il proprio ruolo.
+
+==================================================
+
+FASE 5 — MIGLIORAMENTO DEL PROCESSO
+processAnalysis — ANALISI DEL PROCESSO
+0–49 — DEBOLE
+Le osservazioni sono generiche, astratte o scollegate dall’esperienza realmente vissuta.
+50–69 — PARZIALE
+Identifica almeno un punto di attrito reale, ma l’analisi rimane prevalentemente descrittiva e distingue poco sintomo e causa.
+70–84 — SOLIDA
+Individua inefficienze concrete emerse durante la simulazione, ne comprende l’impatto e identifica almeno parte delle cause.
+85–100 — FORTE
+Analizza criticamente il workflow collegando evidence specifiche, cause e conseguenze; distingue problemi strutturali da preferenze personali e identifica opportunità realmente rilevanti per il processo sales.
+
+improvementDesign — PROGETTAZIONE DEI MIGLIORAMENTI
+0–49 — DEBOLE
+Le proposte sono generiche, scarsamente applicabili o non risolvono chiaramente il problema individuato.
+50–69 — PARZIALE
+Propone interventi plausibili, ma poco specifici, debolmente collegati alla causa o difficili da applicare.
+70–84 — SOLIDA
+Propone soluzioni concrete, coerenti con i problemi individuati e realisticamente applicabili, mostrando comprensione del rapporto tra intervento e impatto.
+85–100 — FORTE
+Progetta interventi ad alto leverage, coerenti con la causa del problema e con il contesto di un processo sales in costruzione, considerando fattibilità, semplicità, trade-off e impatto.
+Non premiare AI, automazioni o tool solo perché tecnologicamente sofisticati.
+
+==================================================
+
+FASE 6 — INTERVISTA CON IL FOUNDER
+professionalSelfAwareness — CONSAPEVOLEZZA PROFESSIONALE
+0–49 — DEBOLE
+La riflessione è superficiale, autocelebrativa o eccessivamente generica e non mostra una lettura realistica della propria performance.
+50–69 — PARZIALE
+Riconosce almeno un punto di forza e un limite reale, ma l’analisi rimane poco specifica o prevalentemente descrittiva.
+70–84 — SOLIDA
+Analizza la propria performance con realismo, identifica decisioni efficaci e limiti concreti e collega la riflessione a momenti specifici della simulazione.
+85–100 — FORTE
+Mostra una lettura particolarmente lucida del proprio comportamento, distingue risultato e processo, individua le cause dei propri errori e comprende quali comportamenti dovrebbe sviluppare ulteriormente.
+Non premiare autocritica fine a se stessa.
+
+coachability — COACHABILITY
+0–49 — DEBOLE
+Ignora, respinge senza argomentazione o comprende male il feedback, oppure lo accetta verbalmente senza mostrare alcuna reale revisione del proprio approccio.
+50–69 — PARZIALE
+Comprende il feedback e mostra disponibilità ad accoglierlo, ma la rielaborazione rimane generica e non descrive chiaramente cosa cambierebbe.
+70–84 — SOLIDA
+Comprende il feedback, riconsidera criticamente la propria scelta e descrive concretamente come modificherebbe il proprio approccio in una situazione analoga.
+85–100 — FORTE
+Integra il feedback con una riflessione autonoma e specifica, identifica il limite dell’approccio precedente e traduce l’apprendimento in un comportamento alternativo concreto e generalizzabile.
+Il candidato può dissentire dal feedback e ottenere comunque un punteggio elevato se dimostra di averlo compreso e argomenta la propria posizione con evidence e ragionamento coerente.
+`;
+
 const app = express();
 const PORT = 3001;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
 
 // ══════════════════════════════════════════════════════════
 // IN-MEMORY SESSION STORAGE (Recruiter Dashboard)
@@ -101,9 +376,10 @@ const mockGood = {
   }
 };
 
-const sessions = [mockGood];
+// Supabase is used instead of in-memory array
 
 app.use(express.json({ limit: '50mb' }));
+app.use('/cvs', express.static(join(__dirname, 'cvs')));
 app.use(express.static(join(__dirname, '.'), {
   maxAge: '1y',
   immutable: true
@@ -113,6 +389,23 @@ app.use(express.static(join(__dirname, '.'), {
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
+
+
+// ══════════════════════════════════════════════════════════
+// CV UPLOAD ENDPOINT
+// ══════════════════════════════════════════════════════════
+app.post('/api/upload-cv', upload.single('cv'), (req, res) => {
+  try {
+    const finalName = req.file.filename + '.pdf';
+    fs.renameSync(req.file.path, req.file.path + '.pdf');
+    // Return the URL directly to the frontend, which will include it in save-session
+    res.json({ success: true, cvUrl: `/cvs/${finalName}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // ══════════════════════════════════════════════════════════
 // EMAIL NOTIFICATION ENDPOINT
@@ -330,7 +623,8 @@ REGOLE GENERALI:
 - Rispondi in ITALIANO.
 - Stile chat Slack: informale, spigliato ma professionale.
 - Non usare abbreviazioni da SMS.
-- Dividi la risposta in 1-3 brevi blocchi separati da due a capo.`;
+- Dividi la risposta in 1-3 brevi blocchi separati da due a capo.
+- IMPORTANTE: Stai chattando DIRETTAMENTE con l'utente. Usa SEMPRE il 'TU' rivolgendoti a lui, e non parlare MAI in terza persona (es. non dire mai 'il candidato ha fatto').`;
 
     if (channel === 'dm-sara') {
       systemPrompt += `\n\nISTRUZIONI DIALOGO HANDOFF (SARA RICCI):
@@ -346,18 +640,26 @@ REGOLE GENERALI:
     }
 
     if (channel === 'dm-marco') {
+      const userMsgCount = (history || []).filter(h => h.sender === 'user').length;
       systemPrompt += `\n\nISTRUZIONI DIALOGO (MARCO CONTI - FEEDBACK PROCESSO):
 - Il candidato ti sta proponendo dei miglioramenti al processo commerciale.
-- Commenta in modo intelligente e realistico (da Sales Manager esperto) la sua proposta.
-- Se è il primo messaggio del candidato, fai una domanda di follow-up mirata per approfondire il suo punto di vista e testare il suo ragionamento.
-- Se è il secondo messaggio (il candidato sta rispondendo alla tua domanda di follow-up), ringrazialo per il feedback e digli che hai tutto, concludendo con il tag speciale [TRANSITION] in fondo all'ultimo blocco del tuo messaggio per passarlo a Gabriel.`;
+- Commenta in modo intelligente e realistico (da Sales Manager esperto) la sua proposta.`;
+      
+      if (userMsgCount === 1) {
+        systemPrompt += `\n- Fai UNA domanda di follow-up mirata per approfondire il suo punto di vista e testare il suo ragionamento.
+- ATTENZIONE ASSOLUTA: NON chiudere la conversazione in questo messaggio e NON usare per nessun motivo il tag [TRANSITION].`;
+      } else {
+        systemPrompt += `\n- Il candidato sta rispondendo alla tua domanda di follow-up.
+- Ringrazialo per il feedback e digli che hai tutto il necessario.
+- Concludi SEMPRE con il tag speciale [TRANSITION] in fondo all'ultimo blocco del tuo messaggio per chiudere la chat e passarlo a Gabriel (obbligatorio).`;
+      }
     }
 
     const openaiMessages = [{ role: 'system', content: systemPrompt }];
     if (history && Array.isArray(history)) {
       history.forEach(h => {
         if (h.sender === 'user') {
-          openaiMessages.push({ role: 'user', content: `Candidato: ${h.content}` });
+          openaiMessages.push({ role: 'user', content: h.content });
         } else if (h.sender === characterKey) {
           openaiMessages.push({ role: 'assistant', content: h.content });
         } else {
@@ -365,7 +667,7 @@ REGOLE GENERALI:
         }
       });
     }
-    openaiMessages.push({ role: 'user', content: `Candidato: ${message}` });
+    openaiMessages.push({ role: 'user', content: message });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -426,7 +728,8 @@ REGOLE
 - Non dire al candidato quale competenza stai valutando.
 - Reagisci brevemente alla risposta prima di proseguire. Non fare monologhi, sii sintetico (massimo 2 blocchi).
 - Non anticipare le domande successive.
-- Rispondi sempre in ITALIANO.`;
+- Rispondi sempre in ITALIANO.
+- IMPORTANTE: Stai chattando DIRETTAMENTE con l'utente. Usa SEMPRE il 'TU' rivolgendoti a lui, e non parlare MAI in terza persona (es. non dire mai 'il candidato ha fatto').`;
 
     const openaiMessages = [{ role: 'system', content: systemPrompt }];
     if (conversation && Array.isArray(conversation)) {
@@ -1737,13 +2040,12 @@ async function generateEvaluationAI(analytics) {
   const messages = analytics.call?.messages || [];
   let transcriptWithTs = '(nessun transcript disponibile)';
   if (messages.length > 0) {
-    const startTime = messages[0].timestamp;
-    transcriptWithTs = messages.map(m => {
+    transcriptWithTs = messages.map((m, idx) => {
       const isCand = m.role === 'user';
       const speaker = isCand ? (analytics.candidate?.firstName || 'Candidato') : (analytics.call?.prospectName || 'Prospect');
-      const elapsed = Math.max(0, m.timestamp - startTime);
-      const mins = Math.floor(elapsed / 60000);
-      const secs = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+      const seconds = Math.round((idx / Math.max(messages.length - 1, 1)) * (callDuration || 300));
+      const mins = Math.floor(seconds / 60);
+      const secs = (seconds % 60).toString().padStart(2, '0');
       return `[${mins}:${secs}] [${speaker}] ${m.content}`;
     }).join('\n');
   }
@@ -1765,159 +2067,524 @@ async function generateEvaluationAI(analytics) {
   const founderThread = formatThread(analytics.founderThread);
 
   const scoringPrompt = `Sei Alpha Assessment Engine, un sistema di valutazione evidence-based per simulazioni professionali.
-Stai valutando un candidato per il ruolo di SDR Inbound sulla base di comportamenti osservabili prodotti durante una job simulation.
+Stai valutando un candidato per il ruolo di SDR Inbound in Pillar sulla base di comportamenti osservabili prodotti durante una job simulation.
 
-Il tuo compito NON è decidere se ti piace il candidato.
+Il tuo compito NON è decidere se il candidato debba essere assunto.
+Il tuo compito NON è decidere se il candidato “ti piace”.
 Il tuo compito NON è produrre impressioni generiche.
-Il tuo compito NON è premiare sicurezza, eloquenza o stile se non sono pertinenti alla specifica competenza.
-Devi trasformare evidence osservabili in valutazioni strutturate, coerenti e verificabili.
-
-PRINCIPI GENERALI:
-1. EVIDENCE BEFORE JUDGMENT: Ogni valutazione deve derivare da ciò che il candidato ha effettivamente fatto, scritto o detto. Non inventare comportamenti.
-2. SCORE THE COMPETENCY, NOT THE PERSON: Valuta esclusivamente la competenza indicata.
-3. DO NOT DOUBLE COUNT: Lo stesso errore o successo non deve essere automaticamente premiato o penalizzato in competenze differenti.
-4. CAUSAL INDEPENDENCE BETWEEN PHASES: Un problema in una fase precedente non deve trascinare automaticamente verso il basso quelle successive.
-5. UNKNOWN IS NOT WRONG: Se un'informazione non è emersa nella discovery e il candidato la registra come sconosciuta, NON è un errore di documentazione.
-6. DISTINGUISH FACT FROM INFERENCE: Distingui informazione emersa, inferenza ragionevole, informazione non disponibile, affermazione non supportata.
-7. DO NOT REWARD VERBOSITY: Una risposta lunga non è necessariamente migliore.
-8. DO NOT USE CALL LENGTH AS A SCORE PROXY.
-9. SCORE CALIBRATION (0-100): 90-100 eccezionale, 80-89 forte, 70-79 buona, 60-69 parziale, 40-59 debole, 20-39 molto limitata, 0-19 non dimostrata.
-10. MICRO-ASSESSMENT: Brevissima frase in italiano (max 1), specifica, spiega il motivo principale dello score, evita superlativi generici ("perfetto"). Includi forza e limite se utile.
+Il tuo compito NON è premiare sicurezza, eloquenza, carisma o stile se non sono pertinenti alla specifica competenza.
+Devi trasformare evidence osservabili in valutazioni strutturate, coerenti, comparabili e verificabili.
 
 ==================================================
+
+CONTESTO DEL RUOLO
+Il ruolo simulato è SDR Intern — Inbound in Pillar.
+Nel ruolo reale, l’SDR Inbound:
+* gestisce la pipeline inbound;
+* valuta e prioritizza i lead;
+* svolge attività di discovery e qualificazione;
+* comprende se esiste una reale opportunità commerciale;
+* documenta accuratamente quanto emerso;
+* prepara handoff strutturati agli Account Executive;
+* comunica in modo chiaro e operativo;
+* contribuisce al miglioramento dei processi sales;
+* lavora con autonomia, precisione, ownership e capacità di apprendimento.
+
+Questo contesto serve esclusivamente per interpretare la rilevanza professionale dei comportamenti osservati.
+NON creare competenze aggiuntive.
+NON modificare le rubric definite sotto.
+NON attribuire punti per generico “cultural fit”, ambizione, competitività o impressioni personali.
+Ogni punteggio deve derivare dalle evidence pertinenti alla specifica competenza.
+
+==================================================
+
+PRINCIPI GENERALI
+1. EVIDENCE BEFORE JUDGMENT
+Ogni valutazione deve derivare da ciò che il candidato ha effettivamente fatto, scritto o detto.
+Non inventare comportamenti.
+Non inferire informazioni fattuali non supportate.
+Non attribuire al candidato informazioni conosciute dal sistema o dal prospect se il candidato non le ha effettivamente scoperte, riconosciute o utilizzate quando pertinente.
+
+2. SCORE THE COMPETENCY, NOT THE PERSON
+Valuta esclusivamente la competenza indicata.
+Non trasformare una performance forte o debole in un giudizio generale sulla persona.
+
+3. DO NOT DOUBLE COUNT
+Lo stesso comportamento non deve essere automaticamente premiato o penalizzato più volte.
+Una stessa evidence può essere rilevante per competenze diverse solo quando dimostra aspetti distinti delle rispettive rubriche.
+
+4. CAUSAL INDEPENDENCE BETWEEN PHASES
+Le fasi sono concatenate, ma misurano task differenti.
+Una performance positiva o negativa in una fase precedente NON deve trascinare automaticamente verso l’alto o verso il basso le fasi successive.
+Usa le fasi precedenti come:
+* contesto;
+* evidence;
+* source of truth.
+NON usarle come scorciatoia valutativa.
+Esempio:
+* il candidato non identifica il Decision Maker durante la Discovery → può perdere punti in Qualificazione dell’opportunità;
+* successivamente scrive nel CRM “Decision Maker non emerso” → NON penalizzare Accuratezza della documentazione;
+* nell’handoff informa correttamente l’AE che il Decision Maker resta da identificare → può ottenere un punteggio elevato in Trasparenza informativa.
+
+5. UNKNOWN IS NOT WRONG
+Un’informazione non emersa non equivale a un’informazione sbagliata.
+Se il candidato rappresenta correttamente un dato come sconosciuto, non definito o non verificato, questo può essere un comportamento corretto.
+Inventare un valore non emerso è invece una criticità.
+
+6. DISTINGUISH FACT FROM INFERENCE
+Distingui sempre:
+* fatto esplicitamente emerso;
+* inferenza ragionevole;
+* informazione non disponibile;
+* affermazione non supportata.
+Fit e Urgency possono richiedere inferenza commerciale, ma devono essere supportati dalle evidence.
+
+7. DO NOT REWARD VERBOSITY
+Una risposta lunga non è necessariamente migliore.
+Premia:
+* pertinenza;
+* precisione;
+* sintesi;
+* qualità del ragionamento;
+* utilità operativa.
+
+8. DO NOT USE CALL LENGTH AS A SCORE PROXY
+Durata, numero di scambi e quantità di parole sono esclusivamente informazioni contestuali.
+Una call breve può essere efficace.
+Una call lunga può essere inefficiente.
+
+9. DO NOT USE THE PROSPECT PROFILE AS A CHECKLIST
+Le informazioni nascoste del prospect rappresentano la ground truth dello scenario.
+NON penalizzare automaticamente il candidato perché non ha scoperto ogni informazione presente nel profilo.
+Prima valuta:
+* se quell’informazione era pertinente;
+* se esisteva una concreta opportunità di approfondirla;
+* se la sua mancanza compromette realmente la comprensione dell’opportunità.
+
+10. MICRO-ASSESSMENT
+Per ogni competenza genera una sola frase in italiano.
+Deve:
+* essere breve;
+* essere specifica;
+* spiegare la principale ragione dello score;
+* utilizzare comportamenti osservabili;
+* includere, quando utile, forza e limite principale.
+Evita:
+* “perfetto”;
+* “magistrale”;
+* “eccezionale”;
+* “ottimo lavoro”;
+* complimenti generici;
+* giudizi sulla persona.
+Preferisci formulazioni come:
+* “Ha identificato…”
+* “Ha approfondito…”
+* “Non ha verificato…”
+* “La motivazione utilizza…”
+* “La documentazione distingue…”
+* “La risposta lascia parzialmente scoperto…”
+
+==================================================
+
+PROTOCOLLO OBBLIGATORIO DI SCORING
+Per OGNI competenza segui internamente questo processo PRIMA di assegnare lo score.
+STEP 1 — EVIDENCE EXTRACTION
+Identifica esclusivamente le evidence pertinenti alla competenza corrente.
+STEP 2 — BEHAVIORAL BAND
+Confronta le evidence con la behavioral rubric specifica e seleziona la fascia che descrive meglio la performance complessiva.
+STEP 3 — COUNTER-EVIDENCE CHECK
+Cerca attivamente evidence che possano contraddire o ridimensionare il giudizio iniziale.
+Non costruire una giustificazione unilaterale dopo aver già deciso lo score.
+STEP 4 — WITHIN-BAND SCORING
+Solo dopo aver selezionato la fascia determina il punteggio preciso.
+Usa:
+* parte bassa della fascia → soddisfa appena l’anchor;
+* parte centrale → rappresenta chiaramente l’anchor;
+* parte alta → soddisfa pienamente l’anchor ed è vicina al livello superiore.
+STEP 5 — FINAL CHECK
+Verifica che assessment ed evidence siano compatibili con lo score assegnato.
+La sequenza deve essere:
+EVIDENCE
+→ BEHAVIORAL BAND
+→ COUNTER-EVIDENCE
+→ SCORE
+→ MICRO-ASSESSMENT
+NON scegliere prima il numero per poi cercare una giustificazione.
+
+==================================================
+
+${BEHAVIORAL_RUBRICS_TEXT}
+
+==================================================
+
 INPUT DELLA SIMULAZIONE
-==================================================
-
 FASE 1 — PRIORITIZZAZIONE CRM
-Dati forniti al candidato nel CRM (Base Knowledge per la valutazione):
-- Marchetti (Edilizia Marchetti): Form "Cerchiamo una soluzione per gestire i cantieri... usiamo Excel". Settore costruzioni, 45 dipendenti, revenue 8M. (Lead ad alto potenziale/pronto).
-- GreenBuild SpA: Form "Sto esplorando soluzioni per il prossimo anno. Nessuna urgenza". 120 dipendenti, 22M. (Lead a medio potenziale, tempistiche lunghe).
-- Ferraro (Costruzioni Ferraro): Referral diretto da cliente top, mail: "Vorremmo capire come Pillar potrebbe aiutarci". 200+ dipendenti, 45M. (Lead ad alto potenziale ma da qualificare).
-- Parisi (Studio Tecnico): Form "Vorrei info sui vostri servizi". 8 dipendenti, revenue 600k. Settore progettazione. (Lead a bassissimo potenziale, fuori target per dimensioni).
-- Rossi (Infrastrutture): Incontrata in fiera, Office Manager. "Mandate materiale". (Lead non qualificato, non decisore, interesse debole).
+Il candidato ha ricevuto le seguenti informazioni:
+EDILIZIA MARCHETTI SRL
+Contatto: Paolo Marchetti, Titolare.
+Costruzioni residenziali.
+45 dipendenti.
+Fatturato €8M.
+Acquisizione: Google Ads.
+Attività:
+* form “Richiedi demo” compilato 1 giorno fa;
+* pagina Prezzi visitata 3 volte;
+* pagina Funzionalità visitata;
+* circa 12 minuti complessivi sul sito negli ultimi 3 giorni.
+Nota:
+“Cerchiamo una soluzione per gestire i cantieri in modo più efficiente. Attualmente usiamo Excel.”
 
-- Ordine di priorità deciso dal candidato: ${JSON.stringify(crm.priorityOrder || [])}
-- Motivazione scritta: ${crm.priorityMotivation || '(non compilata)'}
+GREENBUILD SPA
+Contatto: Francesca Lombardi, Responsabile Acquisti.
+Edilizia sostenibile.
+120 dipendenti.
+Fatturato €22M.
+Acquisizione: LinkedIn Ads.
+Attività:
+* whitepaper “Digitalizzazione cantieri 2025”;
+* form contatto;
+* iscrizione newsletter.
+Nota:
+“Sto esplorando soluzioni per il prossimo anno. Nessuna urgenza al momento.”
+
+COSTRUZIONI FERRARO & FIGLI
+Contatto: Marco Ferraro, Direttore Operativo.
+Infrastrutture.
+200+ dipendenti.
+Fatturato €45M.
+Acquisizione: Referral.
+Attività:
+* referral diretto da EdilNova, cliente Pillar;
+* email: “Ci ha parlato bene di voi il nostro partner EdilNova. Vorremmo capire come Pillar potrebbe aiutarci.”;
+* visita homepage e Case Study;
+* segnalazione interna dell’AE Sara Ricci.
+
+STUDIO TECNICO PARISI
+Contatto: Davide Parisi, Ingegnere titolare.
+Progettazione.
+8 dipendenti.
+Fatturato €600K.
+Acquisizione: Google Ads.
+Attività:
+* visita articolo blog;
+* form generico di contatto.
+Nota:
+“Vorrei informazioni sui vostri servizi.”
+
+ROSSI INFRASTRUTTURE SRL
+Contatto: Laura Rossi, Office Manager.
+Opere pubbliche.
+85 dipendenti.
+Fatturato €15M.
+Acquisizione: Evento.
+Attività:
+* contatto raccolto allo stand Pillar;
+* dichiarazione: “Ci interessa, mandateci del materiale.”;
+* email di follow-up senza risposta.
+
+NON considerare le informazioni sopra come un ranking predefinito.
+Ordine di priorità deciso dal candidato:
+${JSON.stringify(crm.priorityOrder || [])}
+Motivazione:
+${crm.priorityMotivation || '(non compilata)'}
+
+⸻
 
 FASE 2 — DISCOVERY CALL
-Prospect Profile: ${expected.name} (${expected.company})
+Prospect Profile:
+${expected.name} (${expected.company})
+Ground truth dello scenario:
 Pain principale: ${expected.keyPain}
 Budget: ${expected.budget}
 Decision maker: ${expected.decisionMaker}
 Timeline: ${expected.timeline}
 Urgenza: ${expected.urgency}
 Red flags: ${expected.redFlags}
-Metadiche: ${callDuration}s, ${exchangeCount} scambi. ${candidateWordCount} parole candidato, ${prospectWordCount} prospect.
-- Transcript con Timestamp Reali:
+Questi dati rappresentano ciò che è vero nello scenario, NON una checklist che il candidato deve necessariamente completare integralmente.
+Metadata:
+Durata: ${callDuration}s
+Scambi: ${exchangeCount}
+Parole candidato: ${candidateWordCount}
+Parole prospect: ${prospectWordCount}
+Transcript con timestamp reali:
 ${transcriptWithTs}
 
-FASE 3 — QUALIFICAZIONE
-- Pain: ${qual.pain || '(non compilato)'}
-- Budget: ${qual.budget || '(non compilato)'}
-- Decision Maker: ${qual.decisionMaker || '(non compilato)'}
-- Timeline: ${qual.timeline || '(non compilato)'}
-- Urgenza: ${qual.urgency || '(non compilato)'}
-- Fit: ${qual.fit || '(non compilato)'}
-- Next Step: ${qual.nextStep || '(non compilato)'}
-- Note: ${qual.notes || '(non compilato)'}
+⸻
 
-FASE 4 — HANDOFF ALL'ACCOUNT EXECUTIVE
-- Thread Completo con Sara Ricci (AE):
-${handoffThread !== '(non disponibile)' ? handoffThread : `Messaggio iniziale: ${handoff}`}
+FASE 3 — QUALIFICAZIONE CRM
+Pain:
+${qual.pain || '(non compilato)'}
+Budget:
+${qual.budget || '(non compilato)'}
+Decision Maker:
+${qual.decisionMaker || '(non compilato)'}
+Timeline:
+${qual.timeline || '(non compilato)'}
+Urgenza:
+${qual.urgency || '(non compilato)'}
+Fit:
+${qual.fit || '(non compilato)'}
+Next Step:
+${qual.nextStep || '(non compilato)'}
+Note:
+${qual.notes || '(non compilato)'}
+
+⸻
+
+FASE 4 — HANDOFF ALL’ACCOUNT EXECUTIVE
+Thread completo con Sara Ricci:
+${handoffThread !== '(non disponibile)' ? handoffThread : 'Messaggio iniziale: ' + handoff}
+
+⸻
 
 FASE 5 — MIGLIORAMENTO DEL PROCESSO
-- Thread Completo con Marco Conti (Sales Manager):
+Thread completo con Marco Conti:
 ${processThread}
 
+⸻
+
 FASE 6 — INTERVISTA CON IL FOUNDER
-- Thread Completo con Gabriel (Founder):
+Thread completo con Gabriel:
 ${founderThread}
 
 ==================================================
-RICHIESTA E FORMATO OUTPUT (STRICT JSON)
+
+REGOLE SPECIALI — DISCOVERY KEY MOMENTS
+Estrai esclusivamente i momenti della chiamata che modificano materialmente la comprensione dell’opportunità.
+Normalmente saranno 3–6, ma NON esiste un numero obbligatorio.
+Categorie consentite:
+pain
+impact
+budget
+decision_process
+timeline
+urgency
+current_process
+objection
+buying_signal
+next_step
+other_relevant
+
+Per ogni momento:
+* usa esclusivamente timestamp realmente presenti nel transcript;
+* riporta un estratto fedele e breve;
+* non inventare informazioni;
+* non generare categorie solo perché normalmente importanti;
+* non generare un momento “budget” se il budget non viene discusso;
+* privilegia momenti che cambiano realmente ciò che sappiamo del prospect.
+
 ==================================================
 
-Restituisci ESCLUSIVAMENTE un JSON valido che rispetti la seguente struttura (NON inserire blockquote, markdown o commenti):
+REGOLE SPECIALI — QUALIFICATION SOURCE OF TRUTH
+PRIMA di valutare la qualification del candidato:
+1. ricostruisci dal transcript la source of truth;
+2. determina per ciascun campo se l’informazione è:
+    * explicit;
+    * reasonable_inference;
+    * not_emerged;
+3. solo successivamente confronta questa source of truth con il CRM del candidato.
+Campi:
+pain
+budget
+decisionMaker
+timeline
+urgency
+fit
+nextStep
+notes
+
+Per il confronto utilizza:
+coherent
+→ il valore del candidato rappresenta correttamente quanto emerso.
+partial
+→ è sostanzialmente corretto ma incompleto, troppo generico o leggermente impreciso.
+inconsistent
+→ contraddice, inventa o altera materialmente quanto emerso.
+not_emerged
+→ la call non contiene evidence sufficienti per stabilire quel dato.
+
+ATTENZIONE:
+Se la source of truth è not_emerged, valuta separatamente ciò che ha scritto il candidato.
+Esempio:
+Call: budget non emerso.
+CRM: “Non definito”.
+→ comportamento corretto.
+Call: budget non emerso.
+CRM: “€30.000”.
+→ informazione non supportata; criticità di accuratezza.
+Fit e Urgency possono essere inferenze ragionevoli quando supportate da più evidence.
+
+==================================================
+
+PHASE SUMMARY
+Per ogni fase genera una breve sintesi AI.
+Deve:
+* essere massimo 2 frasi;
+* essere evidence-based;
+* spiegare il pattern principale della performance;
+* evidenziare, quando presente, la forza principale e il limite principale;
+* non riportare il punteggio numerico;
+* non utilizzare linguaggio celebrativo;
+* non contraddire le competency assessment.
+
+==================================================
+
+CANDIDATE SUMMARY
+Genera una candidateSummary destinata all’header del report.
+Deve essere un executive summary dell’intera performance.
+Vincoli:
+* italiano;
+* 35–55 parole;
+* massimo 2–3 righe nel layout;
+* identificare i pattern trasversali più rilevanti;
+* citare 1–2 punti di forza realmente supportati;
+* includere l’area di attenzione principale se materialmente rilevante;
+* privilegiare pattern osservati in più evidence o in competenze centrali;
+* non generalizzare un singolo episodio isolato;
+* non citare overallScore;
+* non citare recommendation;
+* non utilizzare personality judgment;
+* non utilizzare superlativi generici.
+Deve permettere al recruiter di capire rapidamente:
+“Che tipo di performance ho davanti e dove dovrei guardare?”
+
+==================================================
+
+EVIDENCE OUTPUT
+Per ogni competency restituisci fino a 3 evidence brevi e specifiche.
+Le evidence devono descrivere ciò che è realmente osservabile.
+Preferisci formulazioni verificabili come:
+“Ha approfondito l’impatto dopo che il prospect ha citato un ordine duplicato.”
+oppure:
+“Nel CRM ha indicato il budget come non definito, coerentemente con il transcript.”
+Evita evidence interpretative come:
+“Ha dimostrato ottime capacità commerciali.”
+Quella è una valutazione, non una evidence.
+
+==================================================
+
+RICHIESTA E FORMATO OUTPUT — STRICT JSON
+Restituisci ESCLUSIVAMENTE JSON valido.
+Non utilizzare markdown.
+Non utilizzare backtick.
+Non aggiungere spiegazioni fuori dal JSON.
 
 {
   "phases": {
     "crmPrioritization": {
-      "summary": "<sintesi della fase in max 2 frasi>",
+      "summary": "<max 2 frasi>",
       "competencies": {
-        "commercialJudgment": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "buyingSignals": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "leadPrioritization": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "motivationCoherence": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "commercialJudgment": {
+          "score": <0-100>,
+          "assessment": "",
+          "evidence": ["...", "..."]
+        },
+        "buyingSignals": {
+          "score": <0-100>,
+          "assessment": "",
+          "evidence": []
+        },
+        "leadPrioritization": {
+          "score": <0-100>,
+          "assessment": "",
+          "evidence": []
+        },
+        "motivationCoherence": {
+          "score": <0-100>,
+          "assessment": "",
+          "evidence": []
+        }
       }
     },
     "discovery": {
-      "summary": "...",
+      "summary": "<max 2 frasi>",
       "keyMoments": [
-        { "timestamp": "<MM:SS preso dal transcript>", "speaker": "<candidate|prospect>", "category": "<pain|impact|budget|decision_process|timeline|urgency|current_process|objection|buying_signal|next_step|other_relevant>", "excerpt": "<estratto fedele>", "relevance": "<perchè è rilevante>" }
+        {
+          "timestamp": "<MM:SS esistente nel transcript>",
+          "speaker": "<candidate|prospect>",
+          "category": "<pain|impact|budget|decision_process|timeline|urgency|current_process|objection|buying_signal|next_step|other_relevant>",
+          "excerpt": "<estratto fedele>",
+          "relevance": "<spiegazione breve>"
+        }
       ],
       "competencies": {
-        "needsExploration": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "opportunityQualification": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "objectionHandling": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "conversationControl": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "needsExploration": {
+          "score": <0-100>,
+          "assessment": "<una frase>",
+          "evidence": []
+        },
+        "opportunityQualification": {
+          "score": <0-100>,
+          "assessment": "<una frase>",
+          "evidence": []
+        },
+        "objectionHandling": {
+          "score": <0-100>,
+          "assessment": "<una frase>",
+          "evidence": []
+        },
+        "conversationControl": {
+          "score": <0-100>,
+          "assessment": "<una frase>",
+          "evidence": []
+        }
       }
     },
     "qualification": {
-      "summary": "...",
+      "summary": "<max 2 frasi>",
       "sourceOfTruth": {
-        "pain": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "...", "evidence": "..." },
-        "budget": { "status": "...", "value": "...", "evidence": "..." },
-        "decisionMaker": { "status": "...", "value": "...", "evidence": "..." },
-        "timeline": { "status": "...", "value": "...", "evidence": "..." },
-        "urgency": { "status": "...", "value": "...", "evidence": "..." },
-        "fit": { "status": "...", "value": "...", "evidence": "..." },
-        "nextStep": { "status": "...", "value": "...", "evidence": "..." },
-        "notes": { "status": "...", "value": "...", "evidence": "..." }
+        "pain": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "budget": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "decisionMaker": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "timeline": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "urgency": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "fit": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "nextStep": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" },
+        "notes": { "status": "<explicit|reasonable_inference|not_emerged>", "value": "<string|null>", "evidence": "<breve evidence>" }
       },
       "crmComparison": [
         { "field": "pain", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
-        { "field": "budget", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "decisionMaker", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "timeline", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "urgency", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "fit", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "nextStep", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." },
-        { "field": "notes", "candidateValue": "...", "callEvidence": "...", "match": "...", "reason": "..." }
+        { "field": "budget", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "decisionMaker", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "timeline", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "urgency", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "fit", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "nextStep", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." },
+        { "field": "notes", "candidateValue": "...", "callEvidence": "...", "match": "<coherent|partial|inconsistent|not_emerged>", "reason": "..." }
       ],
       "competencies": {
-        "qualificationCompleteness": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "documentationAccuracy": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "aeOrientation": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "informationOrganization": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "qualificationCompleteness": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "documentationAccuracy": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "aeOrientation": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "informationOrganization": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] }
       }
     },
     "handoff": {
-      "summary": "...",
+      "summary": "<max 2 frasi>",
       "competencies": {
-        "opportunityContext": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "aeRequestHandling": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "informationTransparency": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "operationalAlignment": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "opportunityContext": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "aeRequestHandling": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "informationTransparency": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "operationalAlignment": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] }
       }
     },
     "processImprovement": {
-      "summary": "...",
+      "summary": "<max 2 frasi>",
       "competencies": {
-        "processAnalysis": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "improvementDesign": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "processAnalysis": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "improvementDesign": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] }
       }
     },
     "founderInterview": {
-      "summary": "...",
+      "summary": "<max 2 frasi>",
       "competencies": {
-        "professionalSelfAwareness": { "score": <0-100>, "assessment": "...", "evidence": [] },
-        "coachability": { "score": <0-100>, "assessment": "...", "evidence": [] }
+        "professionalSelfAwareness": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] },
+        "coachability": { "score": <0-100>, "assessment": "<una frase>", "evidence": [] }
       }
     }
   },
-  "candidateSummary": "<Executive summary dell'intera performance, 2-3 righe, 35-55 parole, pattern trasversali e forza principale. NON indicare score finale o label.>"
-}
-`;
+  "candidateSummary": "<35-55 parole>"
+}`;
 
   try {
     console.log(`🤖 [AI Scoring V2] Sending context to GPT-4o for deterministic evaluation...`);
@@ -2170,13 +2837,55 @@ function generateEvaluationFallback(analytics) {
 app.post('/api/save-session', async (req, res) => {
   try {
     const { analytics } = req.body;
+    const sessionId = randomUUID();
     if (!analytics) return res.status(400).json({ error: 'analytics required' });
 
     console.log(`📊 [Dashboard] Processing session... AI scoring in progress`);
+        // ElevenLabs Backend Extraction
+    console.log("Checking 11Labs:", !!analytics.call, analytics.call?.elevenLabsConversationId, !!process.env.ELEVENLABS_API_KEY);
+    if (analytics.call && analytics.call.elevenLabsConversationId && process.env.ELEVENLABS_API_KEY) {
+      try {
+        const convId = analytics.call.elevenLabsConversationId;
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        
+        // 1. Get Transcript
+        const trRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${convId}`, {
+          headers: { 'xi-api-key': apiKey }
+        });
+        if (trRes.ok) {
+          const convData = await trRes.json();
+          if (convData && convData.transcript && Array.isArray(convData.transcript)) {
+            analytics.call.messages = convData.transcript.map(m => ({
+              role: m.role === 'agent' ? 'assistant' : 'user',
+              content: m.message || m.text || '',
+              timestamp: m.time_in_call_secs ? m.time_in_call_secs * 1000 : Date.now()
+            })).filter(m => m.content);
+          }
+        } else {
+          console.error("ElevenLabs transcript fetch failed:", await trRes.text());
+        }
+
+        // 2. Get Audio
+        const audioRes = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${convId}/audio`, {
+          headers: { 'xi-api-key': apiKey }
+        });
+        if (audioRes.ok) {
+          const arrayBuffer = await audioRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const recordingsDir = join(__dirname, 'recordings');
+          if (!fs.existsSync(recordingsDir)) fs.mkdirSync(recordingsDir, { recursive: true });
+          const filename = `${sessionId}.mp3`;
+          fs.writeFileSync(join(recordingsDir, filename), buffer);
+          analytics.call.audioUrl = `/recordings/${filename}`;
+        }
+      } catch (err) {
+        console.error('ElevenLabs data fetch error:', err);
+      }
+    }
+
     const evaluation = await generateEvaluationAI(analytics);
 
-    const sessionId = randomUUID();
-
+    
     // Handle base64 audio recording if present
     if (analytics.call && analytics.call.audioRecording) {
       try {
@@ -2200,17 +2909,22 @@ app.post('/api/save-session', async (req, res) => {
       delete analytics.call.audioRecording;
     }
 
-    const session = {
+    
+    const { error: dbError } = await supabase.from('sessions').insert([{
       id: sessionId,
-      savedAt: new Date().toISOString(),
-      shortlisted: false,
-      internalNotes: "",
       candidate: analytics.candidate || { firstName: 'Sconosciuto', lastName: '', email: '' },
       analytics: analytics,
       evaluation: evaluation,
-    };
+      status: 'Da valutare',
+      internal_notes: '',
+      saved_at: new Date().toISOString()
+    }]);
 
-    sessions.push(session);
+    if (dbError) {
+      console.error('Errore salvataggio Supabase:', dbError);
+    }
+    const session = { id: sessionId, evaluation, candidate: analytics.candidate }; // for logging
+
     console.log(`📊 [Dashboard] Session saved: ${session.id} — ${session.candidate.firstName} ${session.candidate.lastName} (Score: ${evaluation.overallScore}, AI: ${evaluation.recommendation})`);
     res.json({ id: session.id });
   } catch (e) {
@@ -2220,53 +2934,372 @@ app.post('/api/save-session', async (req, res) => {
 });
 
 // List all sessions (summary details included)
-app.get('/api/sessions', (req, res) => {
-  const summaries = sessions.map(s => ({
-    id: s.id,
-    savedAt: s.savedAt,
-    shortlisted: !!s.shortlisted,
-    candidate: s.candidate,
-    evaluation: s.evaluation || {
-      overallScore: 50,
-      discoveryScore: 50,
-      qualificationScore: 50,
-      handoffScore: 50,
-      aiCommunicationScore: 50,
-      level: 'Average',
-      badgeClass: 'badge-average',
-      recommendation: 'Maybe'
-    },
-    callDuration: s.analytics?.call?.callDuration || 0,
-    prospectName: s.analytics?.call?.prospectName || "Paolo Marchetti",
-    totalTime: s.analytics?.totalTime || 0,
+// Serve Login Page
+app.get('/login', (req, res) => {
+  res.sendFile(join(__dirname, 'login.html'));
+});
+
+const ALLOWED_HR_EMAILS = ['bellottiiluca@gmail.com', 'andreapax790@gmail.com'];
+const otpStore = new Map(); // Store email -> { code, expires }
+
+// Request OTP Code
+app.post('/api/login/request-code', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !ALLOWED_HR_EMAILS.includes(email.toLowerCase())) {
+    // Artificial delay to prevent timing attacks, though it's internal
+    await new Promise(r => setTimeout(r, 1000));
+    return res.status(401).json({ error: 'Email non autorizzata.' });
+  }
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore.set(email.toLowerCase(), { code, expires: Date.now() + 5 * 60000 }); // 5 mins expiry
+
+  try {
+    await resend.emails.send({
+      from: 'Alpha HR <hello@alpha.careers>',
+      to: email,
+      subject: 'Codice di accesso Alpha Dashboard',
+      html: `<div style="font-family:sans-serif; color:#111;">
+        <h2>Accesso Alpha Dashboard</h2>
+        <p>Usa il seguente codice per accedere all'area HR. Il codice scadrà tra 5 minuti.</p>
+        <div style="font-size:24px; font-weight:bold; letter-spacing:4px; padding:12px; background:#f5f5f5; border-radius:8px; display:inline-block; margin: 16px 0;">${code}</div>
+        <p>Se non hai richiesto tu questo accesso, ignora questa email.</p>
+      </div>`
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Resend error:', error);
+    res.status(500).json({ error: 'Errore durante invio email.' });
+  }
+});
+
+// Verify OTP Code
+app.post('/api/login', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) return res.status(400).json({ error: 'Dati mancanti.' });
+
+  const stored = otpStore.get(email.toLowerCase());
+  
+  if (stored && stored.code === code && stored.expires > Date.now()) {
+    otpStore.delete(email.toLowerCase()); // consume code
+    res.setHeader('Set-Cookie', [
+      'alpha_auth=true; Path=/; HttpOnly; Max-Age=604800',
+      `alpha_user=${email.toLowerCase()}; Path=/; Max-Age=604800`
+    ]);
+    return res.json({ success: true });
+  } else {
+    return res.status(401).json({ error: 'Codice errato o scaduto.' });
+  }
+});
+
+// Serve Recruiter Dashboard at clean URL (Protected)
+app.get('/dashboard', (req, res) => {
+  const cookieHeader = req.headers.cookie || '';
+  if (!cookieHeader.includes('alpha_auth=true')) {
+    return res.redirect('/login');
+  }
+  res.sendFile(join(__dirname, 'dashboard.html'));
+});
+
+app.get('/api/sessions', async (req, res) => {
+  const { data, error } = await supabase.from('sessions').select('*').order('saved_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  
+  // Format data to match JS camelCase expectations
+  const formattedData = data.map(s => ({
+    ...s,
+    savedAt: s.saved_at
   }));
-  res.json({ sessions: summaries });
+  
+  res.json({ sessions: formattedData });
 });
 
 // Get full session data
-app.get('/api/session/:id', (req, res) => {
-  const session = sessions.find(s => s.id === req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json(session);
+app.get('/api/session/:id', async (req, res) => {
+  const { data, error } = await supabase.from('sessions').select('*').eq('id', req.params.id).single();
+  if (error || !data) return res.status(404).json({ error: 'Session not found' });
+  
+  // Map snake_case db fields to camelCase frontend expectations
+  res.json({
+    id: data.id,
+    savedAt: data.saved_at,
+    status: data.status,
+    internalNotes: data.internal_notes,
+    candidate: data.candidate,
+    analytics: data.analytics,
+    evaluation: data.evaluation
+  });
 });
 
-// Toggle Shortlist Status
-app.post('/api/session/:id/shortlist', (req, res) => {
-  const session = sessions.find(s => s.id === req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+// Update Candidate Status
+app.post('/api/session/:id/status', async (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['Shortlisted', 'In valutazione', 'Da valutare', 'Scartato'];
+  if (status && !validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
   
-  session.shortlisted = !session.shortlisted;
-  res.json({ id: session.id, shortlisted: session.shortlisted });
+  const newStatus = status || 'Valutato';
+  const { error } = await supabase.from('sessions').update({ status: newStatus }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  
+  res.json({ id: req.params.id, status: newStatus });
+});
+
+// Toggle Shortlist Status (Legacy fallback)
+app.post('/api/session/:id/shortlist', async (req, res) => {
+  const { data, error: fetchErr } = await supabase.from('sessions').select('status').eq('id', req.params.id).single();
+  if (fetchErr || !data) return res.status(404).json({ error: 'Session not found' });
+  
+  const isShortlisted = data.status === 'Shortlisted';
+  const newStatus = isShortlisted ? 'Valutato' : 'Shortlisted';
+  
+  const { error: updErr } = await supabase.from('sessions').update({ status: newStatus }).eq('id', req.params.id);
+  if (updErr) return res.status(500).json({ error: updErr.message });
+  
+  res.json({ id: req.params.id, shortlisted: !isShortlisted, status: newStatus });
 });
 
 // Save Internal Notes
-app.post('/api/session/:id/notes', (req, res) => {
+
+
+app.post('/api/session/:id/ask-alpha', async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const { prompt, history, contextPhase } = req.body;
+    
+    if (!sessionId || !prompt) {
+      return res.status(400).json({ error: 'Manca sessionId o prompt.' });
+    }
+
+    const { data: sessionData, error } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
+    if (error || !sessionData) {
+      return res.status(404).json({ error: 'Session data non trovata.' });
+    }
+    
+    if (!sessionData) {
+      return res.status(404).json({ error: 'Sessione non trovata.' });
+    }
+
+    const systemPrompt = `Sei Alpha AI, il copilota di analisi del recruiter all’interno del report candidato di Alpha.
+
+Il tuo compito è aiutare il recruiter a comprendere, verificare e approfondire la performance del candidato usando esclusivamente:
+
+* assessment già prodotto da Alpha Assessment Engine;
+* score atomici delle 20 competenze;
+* phase score;
+* overall score;
+* recommendation;
+* behavioral rubrics;
+* evidence associate alle competenze;
+* key moments della discovery;
+* source of truth della chiamata;
+* confronto CRM;
+* output originali del candidato;
+* transcript;
+* qualification;
+* handoff;
+* process improvement;
+* founder interview;
+* CV del candidato, se disponibile;
+* eventuali benchmark interni, solo se realmente presenti nei dati forniti.
+
+NON devi rivalutare liberamente il candidato.
+NON devi inventare nuovi score.
+NON devi modificare score, recommendation o rubriche.
+NON devi sostituire la decisione del recruiter.
+NON devi generare informazioni non presenti nelle fonti disponibili.
+
+Il tuo ruolo è:
+1. spiegare perché Alpha ha assegnato una determinata valutazione;
+2. mostrare le evidence che la supportano;
+3. collegare score, rubriche e comportamenti osservati;
+4. evidenziare eventuali contro-evidence;
+5. confrontare fasi o competenze;
+6. individuare incoerenze tra discovery, CRM, handoff e altre attività;
+7. sintetizzare punti di forza, rischi e aree di approfondimento;
+8. permettere al recruiter di risalire dalla valutazione fino all’output originale del candidato.
+
+==================================================
+PRINCIPIO FONDAMENTALE — EXPLAIN, DO NOT RE-SCORE
+
+L’assessment salvato è la source of truth della valutazione.
+
+Se il recruiter chiede: "Perché ha preso 84?"
+NON calcolare nuovamente uno score.
+Devi spiegare:
+* da quali competency score deriva;
+* quali pesi sono stati applicati, se pertinenti;
+* quale behavioral band è stata raggiunta;
+* quali evidence supportano quel giudizio;
+* quali counter-evidence o limiti hanno impedito un punteggio superiore.
+
+Se il recruiter contesta lo score, puoi spiegare il ragionamento dell’assessment e mostrare le evidence, ma NON devi modificare il punteggio.
+Se il recruiter chiede: "Secondo te dovrebbe avere 90?"
+Rispondi distinguendo chiaramente:
+* score ufficiale Alpha;
+* eventuali elementi che potrebbero giustificare una revisione umana.
+Non produrre un nuovo score alternativo.
+
+==================================================
+FONTI E PRIORITÀ
+Usa le fonti in questo ordine:
+1. output originale del candidato;
+2. transcript / thread / CRM / CV;
+3. evidence strutturate salvate;
+4. behavioral rubrics;
+5. assessment e summary già prodotti;
+6. benchmark, solo se realmente disponibili.
+
+Quando due fonti sembrano in conflitto: privilegia l’output originale; segnala la discrepanza; non risolverla inventando informazioni.
+
+==================================================
+EVIDENCE FIRST
+Ogni risposta sostanziale deve essere riconducibile a evidence osservabili.
+Evita frasi generiche come: "È molto bravo nella discovery."
+Preferisci: "Ha approfondito il pain dopo che il prospect ha descritto il problema operativo e ha collegato il tema all’impatto economico; non ha però chiarito completamente il processo decisionale."
+Quando possibile indica: fase; competenza; timestamp; campo CRM; messaggio/thread; specifico output del candidato.
+
+==================================================
+RUBRIC EXPLAINABILITY
+Se il recruiter chiede: "Perché 84?", "Perché non 90?", "Qual è la fascia?", "Cosa doveva fare per salire?", "Fammi vedere la rubrica"
+devi usare la behavioral rubric ufficiale della competenza.
+Formato concettuale della risposta:
+1. Score attuale
+2. Fascia raggiunta
+3. Cosa richiede quella fascia
+4. Evidence del candidato coerenti con la fascia
+5. Cosa manca rispetto alla fascia superiore
+NON inventare requisiti aggiuntivi rispetto alla rubric.
+
+==================================================
+PHASE SCORE EXPLANATION
+Se il recruiter chiede perché una fase ha un certo score:
+* usa esclusivamente i competency score già salvati;
+* applica i pesi ufficiali già definiti;
+* mostra, se utile, il contributo delle singole competenze.
+Non inventare nuove formule.
+
+==================================================
+OVERALL SCORE EXPLANATION
+Se il recruiter chiede perché l’overall score è X:
+spiega il contributo delle 6 fasi secondo i pesi ufficiali.
+Usa esclusivamente i phase score salvati e i pesi del backend.
+NON ricalcolare da valori differenti. NON cambiare il risultato.
+
+==================================================
+CAUSAL INDEPENDENCE BETWEEN PHASES
+Mantieni la stessa logica dell’Assessment Engine.
+Non interpretare automaticamente: Discovery bassa → Qualification bassa.
+Se il recruiter chiede: "Perché Qualification è alta se la Discovery è bassa?", spiega questa indipendenza causale.
+
+==================================================
+CONTRADICTION ANALYSIS
+Se il recruiter chiede di cercare contraddizioni, confronta esplicitamente: transcript vs CRM; transcript vs handoff; CRM vs handoff; dichiarazioni nella Founder Interview vs comportamenti osservati; CV vs performance, solo quando pertinente.
+Classifica le discrepanze come: coerente; parzialmente coerente; incoerente; non verificabile.
+NON trasformare automaticamente ogni differenza in un errore.
+
+==================================================
+CANDIDATE COMPARISON WITH SELF
+Puoi confrontare fasi dello stesso candidato usando score ufficiali e evidence. Segnala se la differenza numerica è piccola e non materialmente significativa.
+
+==================================================
+BENCHMARKS
+Usa benchmark SOLO se presenti nei dati. Se non ci sono benchmark reali, NON inventare percentili, medie o confronto con “top SDR”.
+Rispondi chiaramente che Alpha non dispone ancora di un benchmark interno sufficiente se non ci sono dati.
+
+==================================================
+CV
+Il CV è contesto complementare, NON sostituisce la performance osservata. Usalo per verificare esperienza dichiarata e contestualizzare seniority. NON usare pedigree per reinterpretare arbitrariamente gli score della simulazione.
+
+==================================================
+RECOMMENDATION
+La recommendation ufficiale è: Strong Fit, Good Fit, Review, Limited Fit. NON modificarla.
+Spiega quali pattern di performance e score hanno prodotto quella label secondo le regole deterministiche del sistema.
+NON trasformare la recommendation in direttive di assunzione (es. "assumere", "rifiutare"). La decisione resta umana.
+
+==================================================
+RISK ANALYSIS
+Usa esclusivamente evidence osservate. Distingui tra Rischio osservato (supportato direttamente dalla simulazione) e Area da approfondire (evidence insufficienti o miste). Non trasformare un’area non osservata in un difetto.
+
+==================================================
+INTERVIEW FOLLOW-UP
+Se richiesto, suggerisci domande di follow-up per il recruiter derivate da gap reali, contraddizioni, evidence ambigue o aree non osservate. NON suggerire domande generiche.
+
+==================================================
+WHAT WOULD HAVE IMPROVED THE SCORE?
+Confronta la behavioral band attuale con quella superiore e indica esclusivamente i comportamenti mancanti necessari per raggiungere la fascia superiore. NON inventare una risposta ideale completa.
+
+==================================================
+DO NOT OVERSTATE
+Evita affermazioni assolute ("sicuramente", "perfetto per il ruolo"). Preferisci "le evidence indicano", "la simulazione mostra".
+
+==================================================
+LANGUAGE AND STYLE
+Rispondi in italiano salvo richiesta diversa. Tono professionale, chiaro, conciso, analitico, evidence-based. Non scrivere lunghi report se la domanda è semplice. Rispondi direttamente. Formato markdown pulito.
+
+==================================================
+DATI DELLA SIMULAZIONE:
+Ecco i dati (session.json) su cui devi basare le tue risposte:
+Ecco le regole matematiche (pesi e soglie) di calcolo dello score:
+"""text
+${SCORING_WEIGHTS_TEXT}
+"""
+
+Ecco le rubriche comportamentali di riferimento:
+"""text
+${BEHAVIORAL_RUBRICS_TEXT}
+"""
+
+"""json
+${JSON.stringify(sessionData)}
+"""
+
+Fase da cui l'utente sta chiedendo l'approfondimento (usa come contesto primario se utile): ${contextPhase || 'Generale'}`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(history || []),
+      { role: 'user', content: prompt }
+    ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: messages,
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('OpenAI Error:', err);
+      return res.status(500).json({ error: 'Errore API OpenAI.' });
+    }
+
+    const data = await response.json();
+    const reply = data.choices[0].message.content;
+
+    res.json({ text: reply });
+
+  } catch (err) {
+    console.error('Errore in /api/session/:id/ask-alpha:', err);
+    res.status(500).json({ error: 'Errore durante la richiesta ad Alpha AI.' });
+  }
+});
+
+app.post('/api/session/:id/notes', async (req, res) => {
   const { notes } = req.body;
-  const session = sessions.find(s => s.id === req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const { error } = await supabase.from('sessions').update({ internal_notes: notes || "" }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
   
-  session.internalNotes = notes || "";
-  res.json({ id: session.id, internalNotes: session.internalNotes });
+  res.json({ id: req.params.id, internalNotes: notes || "" });
 });
 
 // ══════════════════════════════════════════════════════════

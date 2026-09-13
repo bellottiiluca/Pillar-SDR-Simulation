@@ -52,6 +52,21 @@ let currentPage = 1;
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
+  // Update sidebar user dynamically based on cookie
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+  const userEmail = getCookie('alpha_user');
+  if (userEmail) {
+    const decodedEmail = decodeURIComponent(userEmail);
+    const emailEl = document.querySelector('.auth-user-email');
+    const avatarEl = document.querySelector('.auth-user-avatar');
+    if (emailEl) emailEl.textContent = decodedEmail;
+    if (avatarEl) avatarEl.textContent = decodedEmail.charAt(0).toUpperCase();
+  }
+
   // Bind filters
   document.getElementById('search-input').addEventListener('input', (e) => {
     filterSearch = e.target.value.trim().toLowerCase();
@@ -218,21 +233,20 @@ function showOverview() {
 }
 
 async function showDetail(id) {
-  activeSessionId = id;
-  document.getElementById('app-sidebar').classList.add('hidden');
-  document.getElementById('view-overview').style.display = 'none';
-  document.getElementById('view-detail').style.display = 'block';
-
-  // Rimuovi il bordo della topbar nel report
-  const topbar = document.querySelector('.app-topbar');
-  if (topbar) topbar.classList.add('no-border');
-
-
-
   try {
     const res = await fetch(`/api/session/${id}`);
     if (!res.ok) throw new Error("Session not found");
     const session = await res.json();
+    
+    // Dati caricati: ora cambiamo la vista e renderizziamo
+    activeSessionId = id;
+    document.getElementById('app-sidebar').classList.add('hidden');
+    document.getElementById('view-overview').style.display = 'none';
+    document.getElementById('view-detail').style.display = 'block';
+
+    const topbar = document.querySelector('.app-topbar');
+    if (topbar) topbar.classList.add('no-border');
+
     renderDetail(session);
 
     // Re-trigger animation
@@ -282,7 +296,12 @@ function updateKPIs() {
   document.getElementById('kpi-avg-score-detail').textContent = `Su ${completed} candidat${completed === 1 ? 'o' : 'i'} valutat${completed === 1 ? 'o' : 'i'}`;
 
   // Average Time
-  const totalSeconds = sessions.reduce((acc, curr) => acc + (curr.callDuration || 0), 0);
+  const totalSeconds = sessions.reduce((acc, curr) => {
+    if ((curr.analytics?.totalTime) && (curr.analytics?.totalTime) > 0) {
+      return acc + ((curr.analytics?.totalTime) / 1000);
+    }
+    return acc + ((curr.analytics?.call?.callDuration) || 0);
+  }, 0);
   const avgSeconds = Math.round(totalSeconds / completed);
   document.getElementById('kpi-avg-time').textContent = formatCallDuration(avgSeconds);
   document.getElementById('kpi-avg-time-detail').textContent = `Su ${completed} simulazion${completed === 1 ? 'e' : 'i'} completat${completed === 1 ? 'a' : 'e'}`;
@@ -355,9 +374,10 @@ function renderOverview() {
     }
     if (activeStatusFilters.length > 0) {
       let currentStatus = "pending";
-      if (s.shortlisted) currentStatus = "shortlisted";
-      else if (s.rejected) currentStatus = "rejected";
-      else if (s.evaluation && s.evaluation.overallScore > 0) currentStatus = "completed";
+      if (s.status === 'Shortlisted') currentStatus = "shortlisted";
+      else if (s.status === 'Scartato') currentStatus = "rejected";
+      else if (s.status === 'In valutazione' || (s.evaluation && s.evaluation.overallScore > 0 && s.status !== 'Da valutare')) currentStatus = "completed";
+      else currentStatus = "pending";
       
       if (!activeStatusFilters.includes(currentStatus)) return false;
     }
@@ -403,7 +423,10 @@ function renderOverview() {
   tbody.innerHTML = pageItems.map((s, idx) => {
     const fullName = `${s.candidate.firstName} ${s.candidate.lastName}`;
     const initials = (s.candidate.firstName.charAt(0) + s.candidate.lastName.charAt(0)).toUpperCase();
-    const durationStr = formatCallDuration(s.callDuration);
+    let durationStr = formatCallDuration((s.analytics?.call?.callDuration));
+    if ((s.analytics?.totalTime) && (s.analytics?.totalTime) > 0) {
+      durationStr = Math.round((s.analytics?.totalTime) / 60000) + ' min';
+    }
     const ev = s.evaluation || { overallScore: 50, discoveryScore: 50, qualificationScore: 50, handoffScore: 50, aiCommunicationScore: 50, level: 'Average', badgeClass: 'badge-average', recommendation: 'Review', strengths: [], improvements: [] };
     const scoreClass = getScoreClass(ev.overallScore);
 
@@ -432,19 +455,27 @@ function renderOverview() {
     const biggestWeakness = phases[phases.length - 1].label;
 
     // Status pill — recruiting-oriented
-    let status = "In Attesa";
+    let status = s.status || "Da valutare";
     let statusClass = "pending";
-    if (s.shortlisted) {
-      status = "Shortlisted";
-      statusClass = "interview";
-    } else if (ev.overallScore < 50) {
-      status = "Scartato";
-      statusClass = "rejected";
-    } else if (s.internalNotes && s.internalNotes.trim().length > 0) {
-      status = "Valutato";
-      statusClass = "completed";
+    
+    // Retrocompatibilità per sessioni vecchie che non hanno s.status
+    if (!s.status) {
+      if (s.shortlisted) {
+        status = "Shortlisted";
+      } else if (ev.overallScore < 50) {
+        status = "Scartato";
+      } else if (s.internalNotes && s.internalNotes.trim().length > 0) {
+        status = "In valutazione";
+      }
     }
-    const statusHtml = `<span class="status-pill ${statusClass}"><span class="status-dot"></span>${status}</span>`;
+    
+    // Assegna la classe in base allo stato testuale
+    if (status === 'Shortlisted') statusClass = "completed";
+    else if (status === 'Scartato') statusClass = "rejected";
+    else if (status === 'In valutazione') statusClass = "interview";
+    else if (status === 'Da valutare') statusClass = "pending";
+    
+    const statusHtml = `<span id="status-${s.id}" class="status-pill ${statusClass}"><span class="status-dot"></span>${status}</span>`;
 
     return `
       <tr onclick="showDetail('${s.id}')" style="animation-delay: ${idx * 0.02}s">
@@ -592,7 +623,7 @@ function renderDetail(s) {
   else if (rLow === 'no hire' || rLow === 'limited fit' || rLow === 'reject' || rLow === 'rejected') recText = 'Limited Fit';
   let recClass = recText.toLowerCase().replace(/ /g, '-');
 
-  const callDur = formatCallDuration(an.call?.callDuration || s.callDuration || 0);
+  const callDur = formatCallDuration(an.call?.callDuration || (s.analytics?.call?.callDuration) || 0);
   const ci = ev.conversationInsights || {};
   const qual = an.qualification || {};
   const prospectName = an.call?.prospectName || 'Prospect';
@@ -629,6 +660,36 @@ function renderDetail(s) {
         <div class="rpt-hdr-text">
           <div class="rpt-hdr-name">${escapeHtml(fullName)}</div>
           <div class="rpt-hdr-email">${escapeHtml(cand.email || '—')}</div>
+        </div>
+      </div>
+      
+      <!-- DYNAMIC ISLAND -->
+      <div class="rpt-dynamic-island">
+        <button class="di-btn" onclick="${cand.cvUrl ? `window.open('${cand.cvUrl}', '_blank')` : `showToast('Il candidato non ha caricato nessun CV.')`}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          CV Candidato
+        </button>
+        <div class="di-sep"></div>
+        
+        <div class="di-status-wrapper">
+          ${(function(){
+            let bc = 'pending';
+            let st = s.status || "Da valutare";
+            if (st === 'Shortlisted') bc = 'completed';
+            else if (st === 'Scartato') bc = 'rejected';
+            else if (st === 'In valutazione') bc = 'interview';
+            else if (st === 'Da valutare') bc = 'pending';
+            return `<button id="di-btn-status" class="di-btn ${bc}" onclick="toggleStatusMenu(event)">`;
+          })()}
+            <span class="status-dot"></span>
+            Stato: <span id="di-current-status">${s.status || 'In valutazione'}</span> <span class="di-chevron">▼</span>
+          </button>
+          <div id="di-status-menu" class="di-status-menu">
+            <div class="di-status-item" onclick="updateStatus('${s.id}', 'Da valutare')"><span class="status-dot" style="background:var(--db-orange);margin-right:8px;"></span>Da valutare</div>
+            <div class="di-status-item" onclick="updateStatus('${s.id}', 'In valutazione')"><span class="status-dot" style="background:var(--db-primary);margin-right:8px;"></span>In valutazione</div>
+            <div class="di-status-item" onclick="updateStatus('${s.id}', 'Shortlisted')"><span class="status-dot" style="background:var(--db-green);margin-right:8px;"></span>Shortlisted</div>
+            <div class="di-status-item" onclick="updateStatus('${s.id}', 'Scartato')"><span class="status-dot" style="background:var(--db-red);margin-right:8px;"></span>Scartato</div>
+          </div>
         </div>
       </div>
 
@@ -686,7 +747,7 @@ function renderDetail(s) {
   const motivationText = crm.priorityMotivation || an.builderMindset?.text || '';
   const crmLeads = crm.leads || [];
   const crmTimeSpent = crm.timeSpent ? formatCallDuration(crm.timeSpent) : null;
-  const crmAiText = crm.aiAssessment || getPhaseComment('Prioritizzazione CRM', crmScore);
+  const crmAiText = (ev.phases?.crmPrioritization?.summary || crm.aiAssessment || getPhaseComment('Prioritizzazione CRM', crmScore)) + " Per un'analisi dettagliata, consulta Alpha AI.";
 
   // Lead metadata fallback for sessions without rich lead data
   const leadMetaFallback = {
@@ -772,9 +833,9 @@ function renderDetail(s) {
     <div class="crm-ai">
       <div class="crm-ai-body">
         <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
-        <div class="crm-ai-text">${escapeHtml(crmAiText).replace(/\\n/g, '<br>')} Per un'analisi dettagliata, consulta Alpha AI.</div>
+        <div class="crm-ai-text">${escapeHtml(crmAiText).replace(/\n/g, '<br>')}</div>
       </div>
-      <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+      <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
     </div>
 
     <div class="crm-comp" style="margin-top: 12px;">
@@ -786,7 +847,7 @@ function renderDetail(s) {
               if (ev.assessmentVersion >= '2.0' && ev.phases?.crmPrioritization) {
                 const cmp = ev.phases.crmPrioritization.competencies;
                 const nameMap = { commercialJudgment: 'Giudizio commerciale', buyingSignals: 'Riconoscimento dei segnali d\'acquisto', leadPrioritization: 'Prioritizzazione dei lead', motivationCoherence: 'Coerenza della motivazione' };
-                const defMap = { commercialJudgment: 'Valuta la capacità di identificare il lead con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', buyingSignals: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto, come pain, urgenza, interesse, budget e processo decisionale.', leadPrioritization: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando la giusta priorità a ciascuna opportunità.', motivationCoherence: 'Valuta quanto la motivazione fornita è coerente con le informazioni disponibili e supporta in modo logico le decisioni prese.' };
+                const defMap = { commercialJudgment: 'Valuta la capacità di identificare le opportunità con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', buyingSignals: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto presenti nelle informazioni disponibili, come pain, urgenza, livello di interesse, budget e processo decisionale.', leadPrioritization: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando a ciascuna opportunità una priorità adeguata rispetto alle alternative disponibili.', motivationCoherence: 'Valuta quanto la motivazione fornita sia coerente con le informazioni disponibili e supporti in modo logico le decisioni di prioritizzazione adottate.' };
                 for (const [k, v] of Object.entries(nameMap)) {
                   const s = cmp[k]?.score || 0;
                   const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
@@ -794,10 +855,10 @@ function renderDetail(s) {
                 }
               } else {
                 comps = [
-                  { name: 'Giudizio commerciale', def: 'Valuta la capacità di identificare il lead con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_giudizio_commerciale || (crmScore >= 85 ? 'Hai identificato correttamente il lead con il maggior potenziale commerciale.' : crmScore >= 70 ? 'Hai individuato un lead ad alto potenziale, anche se non la prima scelta assoluta.' : crmScore >= 50 ? 'La scelta del lead riflette solo parzialmente il reale potenziale commerciale.' : 'Non hai identificato il lead prioritario o i criteri usati non sono abbastanza solidi.') },
-                  { name: 'Riconoscimento dei segnali d\'acquisto', def: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto, come pain, urgenza, interesse, budget e processo decisionale.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_riconoscimento_segnali || (crmScore >= 80 ? 'Hai interpretato correttamente pain, urgenza e livello di interesse.' : crmScore >= 60 ? 'Hai colto alcuni segnali d\'acquisto, ma ne hai tralasciati altri importanti.' : 'Forte difficoltà nell\'interpretare i segnali chiave d\'acquisto e di urgenza.') },
-                  { name: 'Prioritizzazione dei lead', def: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando la giusta priorità a ciascuna opportunità.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_prioritizzazione_lead || (crmScore >= 85 ? 'L\'ordine dei lead riflette una logica commerciale perfetta e coerente.' : crmScore >= 70 ? 'La prioritizzazione ha senso logico nella maggior parte delle assegnazioni.' : crmScore >= 50 ? 'Ci sono discrepanze nell\'ordine commerciale assegnato ai lead minori.' : 'L\'ordine assegnato sembra casuale o basato su metriche errate.') },
-                  { name: 'Coerenza della motivazione', def: 'Valuta quanto la motivazione fornita è coerente con le informazioni disponibili e supporta in modo logico le decisioni prese.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_coerenza_motivazione || (crmScore >= 80 ? 'La motivazione è ben strutturata e supporta la decisione presa.' : crmScore >= 60 ? 'La motivazione è presente ma manca di profondità commerciale.' : 'La motivazione è insufficiente, incoerente o del tutto assente.') }
+                  { name: 'Giudizio commerciale', def: 'Valuta la capacità di identificare le opportunità con il maggior potenziale commerciale, considerando valore, urgenza, probabilità di conversione e contesto.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_giudizio_commerciale || (crmScore >= 85 ? 'Hai identificato correttamente il lead con il maggior potenziale commerciale.' : crmScore >= 70 ? 'Hai individuato un lead ad alto potenziale, anche se non la prima scelta assoluta.' : crmScore >= 50 ? 'La scelta del lead riflette solo parzialmente il reale potenziale commerciale.' : 'Non hai identificato il lead prioritario o i criteri usati non sono abbastanza solidi.') },
+                  { name: 'Riconoscimento dei segnali d\'acquisto', def: 'Valuta la capacità di identificare e interpretare i principali segnali d\'acquisto presenti nelle informazioni disponibili, come pain, urgenza, livello di interesse, budget e processo decisionale.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_riconoscimento_segnali || (crmScore >= 80 ? 'Hai interpretato correttamente pain, urgenza e livello di interesse.' : crmScore >= 60 ? 'Hai colto alcuni segnali d\'acquisto, ma ne hai tralasciati altri importanti.' : 'Forte difficoltà nell\'interpretare i segnali chiave d\'acquisto e di urgenza.') },
+                  { name: 'Prioritizzazione dei lead', def: 'Valuta la capacità di ordinare i lead secondo una logica commerciale coerente, assegnando a ciascuna opportunità una priorità adeguata rispetto alle alternative disponibili.', status: crmScore >= 85 ? 'excellent' : crmScore >= 70 ? 'solid' : crmScore >= 50 ? 'adequate' : 'needs-work', desc: fb.p1_prioritizzazione_lead || (crmScore >= 85 ? 'L\'ordine dei lead riflette una logica commerciale perfetta e coerente.' : crmScore >= 70 ? 'La prioritizzazione ha senso logico nella maggior parte delle assegnazioni.' : crmScore >= 50 ? 'Ci sono discrepanze nell\'ordine commerciale assegnato ai lead minori.' : 'L\'ordine assegnato sembra casuale o basato su metriche errate.') },
+                  { name: 'Coerenza della motivazione', def: 'Valuta quanto la motivazione fornita sia coerente con le informazioni disponibili e supporti in modo logico le decisioni di prioritizzazione adottate.', status: crmScore >= 80 ? 'solid' : crmScore >= 60 ? 'adequate' : 'needs-work', desc: fb.p1_coerenza_motivazione || (crmScore >= 80 ? 'La motivazione è ben strutturata e supporta la decisione presa.' : crmScore >= 60 ? 'La motivazione è presente ma manca di profondità commerciale.' : 'La motivazione è insufficiente, incoerente o del tutto assente.') }
                 ];
               }
           return comps.map(c => `
@@ -826,7 +887,7 @@ function renderDetail(s) {
   // PHASE 2: DISCOVERY CALL
   // ══════════════════════════════════════════
   const callClass = getScoreClass(callScore);
-  const callAiText = getPhaseComment('Chiamata Discovery', callScore);
+  const callAiText = (ev.phases?.discovery?.summary || getPhaseComment('Chiamata Discovery', callScore)) + " Per un'analisi dettagliata, consulta Alpha AI.";
   const transcript = an.call?.transcript || [];
   window.currentCallDuration = an.call?.callDuration || 0;
   window.currentAudioUrl = an.call?.audioUrl || null;
@@ -872,7 +933,7 @@ function renderDetail(s) {
     }).join('');
   } else if (an.callTranscript) {
     // Bulletproof fallback using the raw callTranscript string
-    const lines = an.callTranscript.split('\n');
+    const lines = an.callTranscript.split('');
     transcriptHtml = lines.map(line => {
       const isCand = line.includes('[Candidato]') || line.includes('[candidate]');
       const text = line.replace(/^\[.*?\]:\s*/, '');
@@ -941,23 +1002,26 @@ function renderDetail(s) {
       <div class="rpt-phase-content-inner">
         <div class="rpt-phase-desc">In questa fase il candidato doveva condurre una discovery call con un prospect inbound per qualificare l’opportunità, gestire le obiezioni e definire il prossimo passo.</div>
 
-        <div class="crm-body">
-          <div class="crm-col crm-col--left">
+        <div class="crm-body" style="height: 400px;">
+          <div class="crm-col crm-col--left" style="display: flex; flex-direction: column;">
             <div class="crm-col-hdr">
               <div class="crm-col-title">Transcript della Chiamata</div>
             </div>
-            <div class="crm-list" style="height: 320px; overflow-y: auto; padding-right: 8px;">
-              ${transcriptHtml ? transcriptHtml : '<div style="padding: 16px; font-size: 13px; color: var(--db-text-muted); font-style: italic;">Transcript non disponibile.</div>'}
+            <div style="flex: 1; position: relative;">
+              <div class="crm-list" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto; padding-right: 8px;">
+                ${transcriptHtml ? transcriptHtml : '<div style="padding: 16px; font-size: 13px; color: var(--db-text-muted); font-style: italic;">Transcript non disponibile.</div>'}
+              </div>
             </div>
           </div>
           
           <div class="crm-sep"></div>
 
-          <div class="crm-col crm-col--right">
+          <div class="crm-col crm-col--right" style="display: flex; flex-direction: column;">
             <div class="crm-col-hdr">
               <div class="crm-col-title">Registrazione della chiamata</div>
             </div>
-            <div class="whatsapp-player-container">
+            <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
+              <div class="whatsapp-player-container">
               <div class="rpt-player whatsapp-player">
                 <button class="rpt-player-btn" onclick="playDemoAudio(this)">
                   <div class="rpt-icon-container">
@@ -975,9 +1039,21 @@ function renderDetail(s) {
               ${(() => {
                 if (ev.assessmentVersion >= '2.0' && ev.phases?.discovery?.keyMoments?.length > 0) {
                   return ev.phases.discovery.keyMoments.map(km => `
-                <div class="rpt-key-moment" onclick="showToast('Riproduzione da ${km.timestamp}...')">
+                <div class="rpt-key-moment" onclick="seekAudio('${km.timestamp}')">
                     <span class="rpt-ts-pill" style="margin-left: 0; pointer-events: none;"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>${km.timestamp}</span>
-                  <span class="rpt-km-text"><strong>[${escapeHtml(km.speaker)}]:</strong> ${escapeHtml(km.excerpt)} <br><span style="color:var(--db-text-muted);font-size:12px;opacity:0.8;">${escapeHtml(km.relevance)}</span></span>
+                  <span class="rpt-km-text">
+                    <strong>${(function(){
+                      let s = (km.speaker || "").toLowerCase();
+                      if (s.includes('prospect')) return escapeHtml(an.call?.prospectName || "Paolo Marchetti");
+                      if (s.includes('candidat')) return escapeHtml(fullName);
+                      return escapeHtml(km.speaker);
+                    })()}:</strong> ${escapeHtml(km.excerpt)} 
+                    <br>
+                    <div style="color:var(--db-text-secondary);font-size:13px;opacity:1.0;display:flex;align-items:flex-start;gap:8px;margin-top:6px;line-height:1.4;">
+                      <span style="background:var(--db-surface-active);color:var(--db-text);border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;flex-shrink:0;transform:translateY(1px);">Alpha AI</span>
+                      <span>${escapeHtml(km.relevance)}</span>
+                    </div>
+                  </span>
                 </div>
               `).join('');
                 }
@@ -995,17 +1071,18 @@ function renderDetail(s) {
                   const ts = m.timestamp && typeof m.timestamp === 'string' ? m.timestamp : formatTimestamp(m.idx, msgList.length, an.call?.callDuration || 0);
                   let text = (m.content || m.text || '').substring(0, 50);
                   if ((m.content || m.text || '').length > 50) text += '...';
-                  moments.push({ time: ts, text: 'Prospect: ' + text });
+                  moments.push({ time: ts, text: (an.call?.prospectName || "Paolo Marchetti") + ': ' + text });
                 }
                 
                 return moments.map(km => `
-                <div class="rpt-key-moment" onclick="showToast('Riproduzione da ${km.time}...')">
+                <div class="rpt-key-moment" onclick="seekAudio('${km.time}')">
                     <span class="rpt-ts-pill" style="margin-left: 0; pointer-events: none;"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>${km.time}</span>
-                  <span class="rpt-km-text">${escapeHtml(km.text)}</span>
+                  <span class="rpt-km-text"><strong>${escapeHtml(km.text.split(': ')[0])}:</strong> ${escapeHtml(km.text.split(': ').slice(1).join(': '))} <br><div style="color:var(--db-text-secondary);font-size:13px;opacity:1.0;display:flex;align-items:flex-start;gap:8px;margin-top:6px;line-height:1.4;"><span style="background:var(--db-surface-active);color:var(--db-text);border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;flex-shrink:0;transform:translateY(1px);">Alpha AI</span><span>Punto rilevante estratto automaticamente</span></div></span>
                 </div>
               `).join('');
               })()}
             </div>
+          </div>
           </div>
         </div>
 
@@ -1014,7 +1091,7 @@ function renderDetail(s) {
             <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(callAiText)}</div>
           </div>
-          <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+          <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
         </div>
 
         <div class="crm-comp" style="margin-top: 12px;">
@@ -1025,8 +1102,8 @@ function renderDetail(s) {
               const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
               if (ev.assessmentVersion >= '2.0' && ev.phases?.discovery) {
                 const cmp = ev.phases.discovery.competencies;
-                const nameMap = { needsExploration: 'Esplorazione dei bisogni', opportunityQualification: 'Qualificazione dell’opportunità', objectionHandling: 'Gestione delle obiezioni', conversationControl: 'Controllo della conversazione' };
-                const defMap = { needsExploration: 'Valuta la capacità di esplorare il contesto del prospect, identificando bisogni, pain point e informazioni rilevanti attraverso domande efficaci.', opportunityQualification: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche e contesto.', objectionHandling: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect, mantenendo il focus sugli obiettivi della conversazione.', conversationControl: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, accompagnando il prospect verso il prossimo passo.' };
+                const nameMap = { needsExploration: 'Esplorazione dei bisogni', opportunityQualification: 'Qualificazione dell’opportunità', objectionHandling: 'Gestione delle obiezioni', conversationControl: 'Gestione della conversazione' };
+                const defMap = { needsExploration: 'Valuta la capacità di esplorare il contesto del prospect e far emergere bisogni, pain point e informazioni rilevanti attraverso domande efficaci e approfondimenti pertinenti.', opportunityQualification: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche, urgenza e contesto.', objectionHandling: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect in modo pertinente, mantenendo il focus sugli obiettivi della conversazione.', conversationControl: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, adattandosi alle risposte del prospect e accompagnandolo verso un prossimo passo coerente.' };
                 for (const [k, v] of Object.entries(nameMap)) {
                   const s = cmp[k]?.score || 0;
                   const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
@@ -1034,10 +1111,10 @@ function renderDetail(s) {
                 }
               } else {
                 callComps = [
-                  { name: 'Esplorazione dei bisogni', def: 'Valuta la capacità di esplorare il contesto del prospect, identificando bisogni, pain point e informazioni rilevanti attraverso domande efficaci.', status: callScore >= 80 ? 'excellent' : callScore >= 60 ? 'solid' : 'adequate', score: callScore >= 80 ? 92 : 75, desc: fb.p2_esplorazione_bisogni || 'Hai lasciato spazio al prospect dimostrando un ottimo listen ratio.' },
-                  { name: 'Qualificazione dell’opportunità', def: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche e contesto.', status: callScore >= 85 ? 'excellent' : callScore >= 65 ? 'solid' : 'adequate', score: callScore >= 85 ? 88 : 70, desc: fb.p2_qualificazione_tecnica || 'Hai identificato con chiarezza pain e timeline, leggermente meno il budget.' },
-                  { name: 'Gestione delle obiezioni', def: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect, mantenendo il focus sugli obiettivi della conversazione.', status: callScore >= 80 ? 'solid' : callScore >= 50 ? 'adequate' : 'needs-work', score: callScore >= 80 ? 85 : 60, desc: fb.p2_riconoscimento_budget || "Hai gestito l'obiezione sul prezzo proponendo subito una demo di valore." },
-                  { name: 'Controllo della conversazione', def: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, accompagnando il prospect verso il prossimo passo.', status: callScore >= 90 ? 'excellent' : callScore >= 70 ? 'solid' : 'adequate', score: callScore >= 90 ? 95 : 80, desc: fb.p2_gestione_flusso || 'Il tono di voce era sempre rassicurante e la parlata fluida.' }
+                  { name: 'Esplorazione dei bisogni', def: 'Valuta la capacità di esplorare il contesto del prospect e far emergere bisogni, pain point e informazioni rilevanti attraverso domande efficaci e approfondimenti pertinenti.', status: callScore >= 80 ? 'excellent' : callScore >= 60 ? 'solid' : 'adequate', score: callScore >= 80 ? 92 : 75, desc: fb.p2_esplorazione_bisogni || 'Hai lasciato spazio al prospect dimostrando un ottimo listen ratio.' },
+                  { name: 'Qualificazione dell’opportunità', def: 'Valuta la capacità di raccogliere le informazioni necessarie per comprendere il potenziale dell’opportunità commerciale, considerando priorità, processo decisionale, tempistiche, urgenza e contesto.', status: callScore >= 85 ? 'excellent' : callScore >= 65 ? 'solid' : 'adequate', score: callScore >= 85 ? 88 : 70, desc: fb.p2_qualificazione_tecnica || 'Hai identificato con chiarezza pain e timeline, leggermente meno il budget.' },
+                  { name: 'Gestione delle obiezioni', def: 'Valuta la capacità di riconoscere, approfondire e gestire le obiezioni del prospect in modo pertinente, mantenendo il focus sugli obiettivi della conversazione.', status: callScore >= 80 ? 'solid' : callScore >= 50 ? 'adequate' : 'needs-work', score: callScore >= 80 ? 85 : 60, desc: fb.p2_riconoscimento_budget || "Hai gestito l'obiezione sul prezzo proponendo subito una demo di valore." },
+                  { name: 'Gestione della conversazione', def: 'Valuta la capacità di guidare la conversazione mantenendo struttura, direzione e focus, adattandosi alle risposte del prospect e accompagnandolo verso un prossimo passo coerente.', status: callScore >= 90 ? 'excellent' : callScore >= 70 ? 'solid' : 'adequate', score: callScore >= 90 ? 95 : 80, desc: fb.p2_gestione_flusso || 'Il tono di voce era sempre rassicurante e la parlata fluida.' }
                 ];
               }
               return callComps.map(c => `
@@ -1065,7 +1142,7 @@ function renderDetail(s) {
   // PHASE 3: QUALIFICATION
   // ══════════════════════════════════════════
   const qualClass = getScoreClass(qualScore);
-  const qualAiText = getPhaseComment('Qualificazione', qualScore);
+  const qualAiText = (ev.phases?.qualification?.summary || getPhaseComment('Qualificazione', qualScore)) + " Per un'analisi dettagliata, consulta Alpha AI.";
   const qualTimeSpent = qual.timeSpent ? formatCallDuration(qual.timeSpent) : null;
   const accuracyData = qual.accuracyComparison || [];
 
@@ -1103,9 +1180,25 @@ function renderDetail(s) {
           const statusClass = (statusText || '').toLowerCase().replace(/ /g, '-');
           
           let aiTextHtml = escapeHtml(acc.callEvidence);
-          if (acc.reason) aiTextHtml += `<br><span style="color:var(--db-text-muted);font-size:12px;opacity:0.8;">${escapeHtml(acc.reason)}</span>`;
+          if (acc.reason) aiTextHtml += `<br><div style="color:var(--db-text-secondary);font-size:13px;opacity:1.0;display:flex;align-items:flex-start;gap:8px;margin-top:6px;line-height:1.4;"><span style="background:var(--db-surface-active);color:var(--db-text);border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600;flex-shrink:0;transform:translateY(1px);">Alpha AI</span><span>${escapeHtml(acc.reason)}</span></div>`;
           
-          const candText = acc.candidateValue && acc.candidateValue !== '(non compilato)' ? escapeHtml(acc.candidateValue) : '<span class="empty-val">Non compilato</span>';
+          const rawValue = qual[acc.field];
+          let displayValue = rawValue;
+          if (acc.field === 'nextStep' && displayValue) {
+            const nsMap = {
+              'demo': 'Organizzare demo',
+              'materiale': 'Inviare materiale',
+              'followup': 'Follow-up',
+              'coinvolgere-dm': 'Coinvolgere decision maker',
+              'non-interessato': 'Non interessato'
+            };
+            displayValue = nsMap[displayValue] || displayValue;
+          }
+          
+          let candText = '<span class="empty-val">Non compilato</span>';
+          if (displayValue && displayValue.trim() !== '' && displayValue !== 'Nessuna nota aggiuntiva.') {
+            candText = escapeHtml(displayValue);
+          }
 
           return `
             <tr>
@@ -1138,7 +1231,18 @@ function renderDetail(s) {
           const statusClass = status.toLowerCase().replace(/ /g, '-');
           const tsHtml = acc.callTimestamp ? ` <button class="rpt-ts-pill" onclick="event.stopPropagation(); showToast('Riproduzione audio da ${acc.callTimestamp}')"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>${escapeHtml(acc.callTimestamp)}</button>` : '';
           const aiText = acc.fromCall ? escapeHtml(acc.fromCall) : 'Nessun appunto rilevante perso.';
-          const candText = f.value && f.value !== 'Nessuna nota aggiuntiva.' ? escapeHtml(f.value) : '<span class="empty-val">Non compilato</span>';
+          let displayValue = f.value;
+          if ((f.label === 'Next Step' || f.label === 'Prossimo step' || f.label === 'Prossimo Step') && displayValue) {
+            const nsMap = {
+              'demo': 'Organizzare demo',
+              'materiale': 'Inviare materiale',
+              'followup': 'Follow-up',
+              'coinvolgere-dm': 'Coinvolgere decision maker',
+              'non-interessato': 'Non interessato'
+            };
+            displayValue = nsMap[displayValue] || displayValue;
+          }
+          const candText = displayValue && displayValue !== 'Nessuna nota aggiuntiva.' ? escapeHtml(displayValue) : '<span class="empty-val">Non compilato</span>';
           return `
             <tr>
               <td>${escapeHtml(f.label)}</td>
@@ -1179,7 +1283,7 @@ function renderDetail(s) {
             <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(qualAiText)}</div>
           </div>
-          <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+          <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
         </div>
 
         <div class="crm-comp" style="margin-top: 12px;">
@@ -1191,7 +1295,7 @@ function renderDetail(s) {
               if (ev.assessmentVersion >= '2.0' && ev.phases?.qualification) {
                 const cmp = ev.phases.qualification.competencies;
                 const nameMap = { qualificationCompleteness: 'Completezza della qualificazione', documentationAccuracy: 'Accuratezza della documentazione', aeOrientation: 'Orientamento all\'Account Executive', informationOrganization: 'Organizzazione delle informazioni' };
-                const defMap = { qualificationCompleteness: 'Valuta quanto il candidato ha registrato tutte le informazioni utili che erano effettivamente disponibili dopo la discovery.', documentationAccuracy: 'Valuta fedeltà, precisione e assenza di informazioni inventate o distorte.', aeOrientation: 'Valuta se il CRM consente all\'Account Executive di capire rapidamente opportunità, contesto, unknown rilevanti e next step.', informationOrganization: 'Valuta chiarezza, struttura, leggibilità e corretta collocazione delle informazioni.' };
+                const defMap = { qualificationCompleteness: 'Valuta la capacità di registrare nel CRM le informazioni rilevanti effettivamente emerse durante la discovery, evitando omissioni significative.', documentationAccuracy: 'Valuta la fedeltà delle informazioni registrate rispetto a quanto effettivamente emerso durante la conversazione, senza errori, distorsioni o informazioni non supportate.', aeOrientation: 'Valuta la capacità di documentare l’opportunità fornendo all\'Account Executive le informazioni necessarie per comprenderla e proseguire efficacemente la trattativa.', informationOrganization: 'Valuta la capacità di strutturare le informazioni nel CRM in modo chiaro, sintetico e facilmente consultabile.' };
                 for (const [k, v] of Object.entries(nameMap)) {
                   const s = cmp[k]?.score || 0;
                   const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
@@ -1230,7 +1334,7 @@ function renderDetail(s) {
   // PHASE 4: HANDOFF
   // ══════════════════════════════════════════
   const handoffClass = getScoreClass(handoffScore);
-  const handoffAiText = getPhaseComment('Handoff AE', handoffScore);
+  const handoffAiText = (ev.phases?.handoff?.summary || getPhaseComment('Handoff AE', handoffScore)) + " Per un'analisi dettagliata, consulta Alpha AI.";
   const slackThread = an.handoff?.slackThread || [];
   const handoffText = an.handoffMessage?.text || '';
   const candidateMessages = an.candidateMessages || [];
@@ -1242,14 +1346,15 @@ function renderDetail(s) {
   let slackHtml = '';
   if (slackThread.length > 0) {
     slackHtml = slackThread.map(msg => {
-      const msgInitials = msg.sender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const isAE = msg.role.toLowerCase().includes('account executive');
+      const displaySender = ((msg.role || "").toLowerCase().includes('sdr') || (msg.role || "").toLowerCase().includes('intern') || msg.sender === cand.firstName) ? fullName : msg.sender;
+      const msgInitials = displaySender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isAE = (msg.role || "").toLowerCase().includes('account executive');
       const avatarClass = isAE ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
           <div class="rpt-slack-msg-hdr">
             <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
-            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-name">${escapeHtml(displaySender)}</span>
             <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
             <span class="rpt-slack-msg-time">${msg.timestamp}</span>
           </div>
@@ -1264,13 +1369,15 @@ function renderDetail(s) {
     candidateMessages.forEach(m => allMsgs.push({ sender: fullName, role: 'SDR Inbound', text: m.text, isReply: false, channel: m.channel }));
 
     slackHtml = allMsgs.map(msg => {
-      const isAE = msg.role.toLowerCase().includes('account executive');
+      const displaySender = ((msg.role || "").toLowerCase().includes('sdr') || (msg.role || "").toLowerCase().includes('intern') || msg.sender === cand.firstName) ? fullName : msg.sender;
+      const initials = displaySender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isAE = (msg.role || "").toLowerCase().includes('account executive');
       const avatarClass = isAE ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg">
           <div class="rpt-slack-msg-hdr">
             <div class="rpt-slack-avatar ${avatarClass}">${initials}</div>
-            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-name">${escapeHtml(displaySender)}</span>
             <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
             ${msg.channel ? `<span class="rpt-slack-msg-role ${avatarClass}">#${escapeHtml(msg.channel)}</span>` : ''}
           </div>
@@ -1314,7 +1421,7 @@ function renderDetail(s) {
             <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
             <div class="crm-ai-text">${escapeHtml(handoffAiText)}</div>
           </div>
-          <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+          <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
         </div>
 
         <div class="crm-comp" style="margin-top: 12px;">
@@ -1326,7 +1433,7 @@ function renderDetail(s) {
               if (ev.assessmentVersion >= '2.0' && ev.phases?.handoff) {
                 const cmp = ev.phases.handoff.competencies;
                 const nameMap = { opportunityContext: 'Contestualizzazione dell\'opportunità', aeRequestHandling: 'Gestione delle richieste dell\'AE', informationTransparency: 'Trasparenza informativa', operationalAlignment: 'Allineamento operativo' };
-                const defMap = { opportunityContext: 'Capacità di trasferire rapidamente prospect, problema, impatto e informazioni essenziali.', aeRequestHandling: 'Capacità di comprendere le richieste successive dell\'AE e rispondere in modo pertinente.', informationTransparency: 'Capacità di distinguere ciò che è noto, ciò che è inferito e ciò che manca.', operationalAlignment: 'Capacità di allinearsi su priorità, informazioni mancanti e azioni necessarie.' };
+                const defMap = { opportunityContext: 'Valuta la capacità di presentare all\'Account Executive il prospect, il problema emerso e il contesto commerciale necessario per comprendere rapidamente l\'opportunità.', aeRequestHandling: 'Valuta la capacità di comprendere le richieste di approfondimento dell\'Account Executive e rispondere in modo pertinente, chiaro e utile al proseguimento della trattativa.', informationTransparency: 'Valuta la capacità di distinguere chiaramente le informazioni effettivamente emerse da quelle non disponibili o non verificate, evitando supposizioni e ricostruzioni non supportate.', operationalAlignment: 'Valuta la capacità di allinearsi con l\'Account Executive sulle informazioni mancanti, sulle priorità e sulle azioni necessarie per proseguire la trattativa.' };
                 for (const [k, v] of Object.entries(nameMap)) {
                   const s = cmp[k]?.score || 0;
                   const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
@@ -1334,10 +1441,10 @@ function renderDetail(s) {
                 }
               } else {
                 handoffComps = [
-                  { name: 'Contestualizzazione dell\'opportunità', def: 'Valuta la capacità di sintetizzare il prospect, il problema principale e il motivo per cui l\'AE dovrebbe prendere in carico il deal.', status: handoffScore >= 80 ? 'excellent' : handoffScore >= 60 ? 'solid' : 'adequate', score: handoffScore >= 80 ? 88 : 65, desc: fb.p4_contesto || 'Hai fornito il contesto base in modo chiaro.' },
-                  { name: 'Gestione delle richieste dell\'AE', def: 'Valuta la reattività e la precisione nel rispondere alle domande di approfondimento dell\'Account Executive in modo proattivo.', status: handoffScore >= 85 ? 'excellent' : handoffScore >= 65 ? 'solid' : 'needs-work', score: handoffScore >= 85 ? 90 : 60, desc: fb.p4_gestione_richieste || 'Hai risposto puntualmente a Sara senza perdere tempo.' },
-                  { name: 'Trasparenza informativa', def: 'Valuta la capacità di distinguere con chiarezza le informazioni effettivamente emerse da quelle non ancora disponibili.', status: handoffScore >= 75 ? 'solid' : handoffScore >= 50 ? 'adequate' : 'needs-work', score: handoffScore >= 75 ? 85 : 65, desc: fb.p4_trasparenza_informativa || 'Indicazioni chiare per la Demo, ma manca un suggerimento su quali slide spingere.' },
-                  { name: 'Allineamento operativo', def: 'Valuta la capacità di concordare chiaramente i prossimi passi e chi farà cosa per portare avanti il deal.', status: handoffScore >= 75 ? 'solid' : 'adequate', score: handoffScore >= 75 ? 82 : 68, desc: fb.p4_allineamento || 'I next steps sono stati confermati correttamente.' }
+                  { name: 'Contestualizzazione dell\'opportunità', def: 'Valuta la capacità di presentare all\'Account Executive il prospect, il problema emerso e il contesto commerciale necessario per comprendere rapidamente l\'opportunità.', status: handoffScore >= 80 ? 'excellent' : handoffScore >= 60 ? 'solid' : 'adequate', score: handoffScore >= 80 ? 88 : 65, desc: fb.p4_contesto || 'Hai fornito il contesto base in modo chiaro.' },
+                  { name: 'Gestione delle richieste dell\'AE', def: 'Valuta la capacità di comprendere le richieste di approfondimento dell\'Account Executive e rispondere in modo pertinente, chiaro e utile al proseguimento della trattativa.', status: handoffScore >= 85 ? 'excellent' : handoffScore >= 65 ? 'solid' : 'needs-work', score: handoffScore >= 85 ? 90 : 60, desc: fb.p4_gestione_richieste || 'Hai risposto puntualmente a Sara senza perdere tempo.' },
+                  { name: 'Trasparenza informativa', def: 'Valuta la capacità di distinguere chiaramente le informazioni effettivamente emerse da quelle non disponibili o non verificate, evitando supposizioni e ricostruzioni non supportate.', status: handoffScore >= 75 ? 'solid' : handoffScore >= 50 ? 'adequate' : 'needs-work', score: handoffScore >= 75 ? 85 : 65, desc: fb.p4_trasparenza_informativa || 'Indicazioni chiare per la Demo, ma manca un suggerimento su quali slide spingere.' },
+                  { name: 'Allineamento operativo', def: 'Valuta la capacità di allinearsi con l\'Account Executive sulle informazioni mancanti, sulle priorità e sulle azioni necessarie per proseguire la trattativa.', status: handoffScore >= 75 ? 'solid' : 'adequate', score: handoffScore >= 75 ? 82 : 68, desc: fb.p4_allineamento || 'I next steps sono stati confermati correttamente.' }
                 ];
               }
               return handoffComps.map(c => `
@@ -1373,14 +1480,15 @@ function renderDetail(s) {
   let processHtml = '';
   if (processThread.length > 0) {
     processHtml = processThread.map(msg => {
-      const msgInitials = msg.sender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const isManager = msg.role.toLowerCase().includes('manager') || msg.role.toLowerCase().includes('sales');
+      const displaySender = ((msg.role || "").toLowerCase().includes('sdr') || (msg.role || "").toLowerCase().includes('intern') || msg.sender === cand.firstName) ? fullName : msg.sender;
+      const msgInitials = displaySender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isManager = (msg.role || "").toLowerCase().includes('manager') || (msg.role || "").toLowerCase().includes('sales');
       const avatarClass = isManager ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
           <div class="rpt-slack-msg-hdr">
             <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
-            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-name">${escapeHtml(displaySender)}</span>
             <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
             <span class="rpt-slack-msg-time">${msg.timestamp}</span>
           </div>
@@ -1404,19 +1512,21 @@ function renderDetail(s) {
     `;
   }
 
+  const processAiText = (ev.phases?.processImprovement?.summary || 'La candidata ha individuato con precisione il problema di conversione del form inbound, proponendo una soluzione pragmatica e difendendola in modo strutturato. Ha dimostrato eccellente proattività.') + " Per un'analisi dettagliata, consulta Alpha AI.";
+
   processEl.innerHTML = `
-    <div class=\"rpt-phase-hdr\" onclick=\"togglePhase(this)\">
-      <div class=\"rpt-phase-hdr-left\">
-        <span class=\"rpt-phase-num\">5</span>
+    <div class="rpt-phase-hdr" onclick="togglePhase(this)">
+      <div class="rpt-phase-hdr-left">
+        <span class="rpt-phase-num">5</span>
         <span class="rpt-phase-title">Miglioramento del processo</span>
       </div>
-      <div class=\"rpt-phase-hdr-right\">
-        <div class=\"rpt-phase-score-pill ${processClass}\"><span class=\"pill-dot\"></span>${processScore} / 100</div>
-        <svg class=\"rpt-chevron\" viewBox=\"0 0 24 24\"><path d=\"M6 9l6 6 6-6\"/></svg>
+      <div class="rpt-phase-hdr-right">
+        <div class="rpt-phase-score-pill ${processClass}"><span class="pill-dot"></span>${processScore} / 100</div>
+        <svg class="rpt-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
       </div>
     </div>
-    <div class=\"rpt-phase-content\">
-      <div class=\"rpt-phase-content-inner\">
+    <div class="rpt-phase-content">
+      <div class="rpt-phase-content-inner">
         <div class="rpt-phase-desc">In questa fase il candidato doveva analizzare il processo sperimentato nelle fasi precedenti, individuare eventuali inefficienze e proporre miglioramenti concreti.</div>
         
         <div class="rpt-subsection">
@@ -1429,39 +1539,47 @@ function renderDetail(s) {
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
             <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
-            <div class="crm-ai-text">La candidata ha individuato con precisione il problema di conversione del form inbound, proponendo una soluzione pragmatica e difendendola in modo strutturato. Ha dimostrato eccellente proattività.</div>
+            <div class="crm-ai-text">${escapeHtml(processAiText)}</div>
           </div>
-          <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+          <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
         </div>
 
         <div class="crm-comp" style="margin-top: 12px;">
           <div class="crm-comp-grid">
-            <div class="crm-comp-item">
-              <div class="crm-comp-name">
-                Analisi del processo
-                <div class="crm-comp-info" data-tooltip="Valuta la capacità di individuare inefficienze, punti di attrito e opportunità di miglioramento sulla base dell’esperienza maturata durante la simulazione.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            ${(() => {
+              let processComps = [];
+              const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.processImprovement) {
+                const cmp = ev.phases.processImprovement.competencies;
+                const nameMap = { processAnalysis: 'Analisi del processo', improvementDesign: 'Progettazione dei miglioramenti' };
+                const defMap = { processAnalysis: 'Valuta la capacità di individuare inefficienze, punti di attrito e opportunità di miglioramento sulla base dell’esperienza maturata durante la simulazione.', improvementDesign: 'Valuta la capacità di proporre interventi concreti, coerenti con i problemi individuati e realisticamente applicabili al processo di vendita.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  processComps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                processComps = [
+                  { name: 'Analisi del processo', def: 'Valuta la capacità di individuare inefficienze, punti di attrito e opportunità di miglioramento sulla base dell’esperienza maturata durante la simulazione.', status: processScore >= 80 ? 'excellent' : processScore >= 60 ? 'solid' : 'adequate', score: processScore >= 80 ? 85 : 65, desc: ev.competencyFeedback?.p5_analisi_processo || 'Ottima identificazione delle inefficienze nel follow-up.' },
+                  { name: 'Progettazione dei miglioramenti', def: 'Valuta la capacità di proporre interventi concreti, coerenti con i problemi individuati e realisticamente applicabili al processo di vendita.', status: processScore >= 80 ? 'solid' : 'adequate', score: processScore >= 80 ? 80 : 60, desc: ev.competencyFeedback?.p5_progettazione_miglioramenti || 'Soluzioni proposte coerenti e ben strutturate.' }
+                ];
+              }
+              return processComps.map(c => `
+                <div class="crm-comp-item">
+                  <div class="crm-comp-name">
+                    ${escapeHtml(c.name)}
+                    <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    </div>
+                  </div>
+                  <div class="crm-comp-score-block">
+                    <span class="crm-comp-score-num ${c.status}">${c.score || scoresMap[c.status]}</span>
+                    <span class="crm-comp-score-of">/ 100</span>
+                  </div>
+                  <div class="crm-comp-desc">${escapeHtml(c.desc)}</div>
                 </div>
-              </div>
-              <div class="crm-comp-score-block">
-                <span class="crm-comp-score-num excellent">85</span>
-                <span class="crm-comp-score-of">/ 100</span>
-              </div>
-              <div class="crm-comp-desc">${ev.competencyFeedback?.p5_analisi_processo || 'Ottima identificazione delle inefficienze nel follow-up.'}</div>
-            </div>
-            <div class="crm-comp-item">
-              <div class="crm-comp-name">
-                Progettazione dei miglioramenti
-                <div class="crm-comp-info" data-tooltip="Valuta la capacità di proporre interventi concreti, coerenti con i problemi individuati e potenzialmente applicabili al processo di vendita.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-                </div>
-              </div>
-              <div class="crm-comp-score-block">
-                <span class="crm-comp-score-num solid">80</span>
-                <span class="crm-comp-score-of">/ 100</span>
-              </div>
-              <div class="crm-comp-desc">${ev.competencyFeedback?.p5_progettazione_miglioramenti || 'Soluzioni proposte coerenti e ben strutturate.'}</div>
-            </div>
+              `).join('');
+            })()}
           </div>
         </div>
       </div>
@@ -1480,14 +1598,15 @@ function renderDetail(s) {
   let founderHtml = '';
   if (founderThread.length > 0) {
     founderHtml = founderThread.map(msg => {
-      const msgInitials = msg.sender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const isFounder = msg.role.toLowerCase().includes('founder') || msg.role.toLowerCase().includes('ceo');
+      const displaySender = ((msg.role || "").toLowerCase().includes('sdr') || (msg.role || "").toLowerCase().includes('intern') || msg.sender === cand.firstName) ? fullName : msg.sender;
+      const msgInitials = displaySender.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const isFounder = (msg.role || "").toLowerCase().includes('founder') || (msg.role || "").toLowerCase().includes('ceo');
       const avatarClass = isFounder ? 'avatar-ae' : 'avatar-sdr';
       return `
         <div class="rpt-slack-msg${msg.isReply ? ' reply' : ''}">
           <div class="rpt-slack-msg-hdr">
             <div class="rpt-slack-avatar ${avatarClass}">${msgInitials}</div>
-            <span class="rpt-slack-msg-name">${escapeHtml(msg.sender)}</span>
+            <span class="rpt-slack-msg-name">${escapeHtml(displaySender)}</span>
             <span class="rpt-slack-msg-role ${avatarClass}">${escapeHtml(msg.role)}</span>
             <span class="rpt-slack-msg-time">${msg.timestamp}</span>
           </div>
@@ -1511,19 +1630,21 @@ function renderDetail(s) {
     `;
   }
 
+  const founderAiText = (ev.phases?.founderInterview?.summary || 'La candidata mostra una forte ambizione e una chiara intenzione di crescere nel ruolo. Si adatta perfettamente ai valori aziendali, offrendo uno spaccato onesto sui suoi limiti e su come correggerli.') + " Per un'analisi dettagliata, consulta Alpha AI.";
+
   founderEl.innerHTML = `
-    <div class=\"rpt-phase-hdr\" onclick=\"togglePhase(this)\">
-      <div class=\"rpt-phase-hdr-left\">
-        <span class=\"rpt-phase-num\">6</span>
-        <span class=\"rpt-phase-title\">Intervista con il Founder</span>
+    <div class="rpt-phase-hdr" onclick="togglePhase(this)">
+      <div class="rpt-phase-hdr-left">
+        <span class="rpt-phase-num">6</span>
+        <span class="rpt-phase-title">Intervista con il Founder</span>
       </div>
-      <div class=\"rpt-phase-hdr-right\">
-        <div class=\"rpt-phase-score-pill ${founderClass}\"><span class=\"pill-dot\"></span>${founderScore} / 100</div>
-        <svg class=\"rpt-chevron\" viewBox=\"0 0 24 24\"><path d=\"M6 9l6 6 6-6\"/></svg>
+      <div class="rpt-phase-hdr-right">
+        <div class="rpt-phase-score-pill ${founderClass}"><span class="pill-dot"></span>${founderScore} / 100</div>
+        <svg class="rpt-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
       </div>
     </div>
-    <div class=\"rpt-phase-content\">
-      <div class=\"rpt-phase-content-inner\">
+    <div class="rpt-phase-content">
+      <div class="rpt-phase-content-inner">
         <div class="rpt-phase-desc">In questa fase il candidato doveva riflettere sull’esperienza svolta, valutare le proprie scelte e confrontarsi con il Founder su possibili aree di miglioramento.</div>
         
         <div class="rpt-subsection">
@@ -1536,39 +1657,47 @@ function renderDetail(s) {
         <div class="crm-ai" style="margin-top: 32px;">
           <div class="crm-ai-body">
             <div class="crm-ai-label"><span style="display: inline-block; width: 14px; height: 14px; margin-right: 2px; background-color: #0F172A; -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('alpha-icon-only.png'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"></span>Valutazione Alpha AI</div>
-            <div class="crm-ai-text">La candidata mostra una forte ambizione e una chiara intenzione di crescere nel ruolo. Si adatta perfettamente ai valori aziendali, offrendo uno spaccato onesto sui suoi limiti e su come correggerli.</div>
+            <div class="crm-ai-text">${escapeHtml(founderAiText)}</div>
           </div>
-          <button class="rpt-hdr-ai-cta" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
+          <button class="rpt-hdr-ai-cta" onclick="openAlphaAIModal(this)">Approfondisci con Alpha AI <span class="cta-arrow">&rarr;</span></button>
         </div>
 
         <div class="crm-comp" style="margin-top: 12px;">
           <div class="crm-comp-grid">
-            <div class="crm-comp-item">
-              <div class="crm-comp-name">
-                Consapevolezza professionale
-                <div class="crm-comp-info" data-tooltip="Valuta la capacità di analizzare in modo realistico il proprio operato, riconoscendo punti di forza, limiti e aree di miglioramento emerse durante la simulazione.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            ${(() => {
+              let founderComps = [];
+              const scoresMap = { excellent: 94, solid: 82, adequate: 65, 'needs-work': 45 };
+              if (ev.assessmentVersion >= '2.0' && ev.phases?.founderInterview) {
+                const cmp = ev.phases.founderInterview.competencies;
+                const nameMap = { professionalSelfAwareness: 'Consapevolezza professionale', coachability: 'Coachability' };
+                const defMap = { professionalSelfAwareness: 'Valuta la capacità di analizzare realisticamente il proprio operato, riconoscendo punti di forza, limiti e aree di miglioramento emerse durante la simulazione.', coachability: 'Valuta la capacità di recepire feedback, riconsiderare le proprie scelte quando emergono elementi rilevanti e tradurre quanto appreso in azioni o comportamenti migliorativi concreti.' };
+                for (const [k, v] of Object.entries(nameMap)) {
+                  const s = cmp[k]?.score || 0;
+                  const stat = s >= 85 ? 'excellent' : s >= 70 ? 'solid' : s >= 50 ? 'adequate' : 'needs-work';
+                  founderComps.push({ name: v, def: defMap[k], status: stat, score: s, desc: cmp[k]?.assessment || 'N/A' });
+                }
+              } else {
+                founderComps = [
+                  { name: 'Consapevolezza professionale', def: 'Valuta la capacità di analizzare realisticamente il proprio operato, riconoscendo punti di forza, limiti e aree di miglioramento emerse durante la simulazione.', status: founderScore >= 80 ? 'excellent' : founderScore >= 60 ? 'solid' : 'adequate', score: founderScore >= 80 ? 92 : 65, desc: ev.competencyFeedback?.p6_consapevolezza_professionale || 'Perfettamente in sintonia con la mentalità orientata ai risultati.' },
+                  { name: 'Coachability', def: 'Valuta la capacità di recepire feedback, riconsiderare le proprie scelte quando emergono elementi rilevanti e tradurre quanto appreso in azioni o comportamenti migliorativi concreti.', status: founderScore >= 80 ? 'excellent' : founderScore >= 60 ? 'solid' : 'adequate', score: founderScore >= 80 ? 88 : 65, desc: ev.competencyFeedback?.p6_coachability || 'Ha espresso obiettivi di crescita chiari ed ambiziosi.' }
+                ];
+              }
+              return founderComps.map(c => `
+                <div class="crm-comp-item">
+                  <div class="crm-comp-name">
+                    ${escapeHtml(c.name)}
+                    <div class="crm-comp-info" data-tooltip="${escapeHtml(c.def || '')}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    </div>
+                  </div>
+                  <div class="crm-comp-score-block">
+                    <span class="crm-comp-score-num ${c.status}">${c.score || scoresMap[c.status]}</span>
+                    <span class="crm-comp-score-of">/ 100</span>
+                  </div>
+                  <div class="crm-comp-desc">${escapeHtml(c.desc)}</div>
                 </div>
-              </div>
-              <div class="crm-comp-score-block">
-                <span class="crm-comp-score-num excellent">92</span>
-                <span class="crm-comp-score-of">/ 100</span>
-              </div>
-              <div class="crm-comp-desc">${ev.competencyFeedback?.p6_consapevolezza_professionale || 'Perfettamente in sintonia con la mentalità orientata ai risultati.'}</div>
-            </div>
-            <div class="crm-comp-item">
-              <div class="crm-comp-name">
-                Coachability
-                <div class="crm-comp-info" data-tooltip="Valuta la capacità di accogliere feedback, riconsiderare le proprie scelte e tradurre le indicazioni ricevute in comportamenti o approcci migliorativi.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-                </div>
-              </div>
-              <div class="crm-comp-score-block">
-                <span class="crm-comp-score-num excellent">88</span>
-                <span class="crm-comp-score-of">/ 100</span>
-              </div>
-              <div class="crm-comp-desc">${ev.competencyFeedback?.p6_coachability || 'Ha espresso obiettivi di crescita chiari ed ambiziosi.'}</div>
-            </div>
+              `).join('');
+            })()}
           </div>
         </div>
       </div>
@@ -1630,7 +1759,7 @@ function renderEmptyPhase(num, title) {
 }
 
 function aiComment(text) {
-  return `<div class="rpt-ai-comment"><div class="rpt-ai-comment-label">Commento AI</div><p class="rpt-ai-comment-text">${escapeHtml(text)}</p><span class="rpt-ai-comment-action" onclick="showToast('Apertura Alpha...')">Approfondisci con Alpha →</span></div>`;
+  return `<div class="rpt-ai-comment"><div class="rpt-ai-comment-label">Commento AI</div><p class="rpt-ai-comment-text">${escapeHtml(text)}</p><span class="rpt-ai-comment-action" onclick="openAlphaAIModal(this)">Approfondisci con Alpha →</span></div>`;
 }
 
 function emptyState(text) {
@@ -1772,3 +1901,392 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+
+function seekAudio(timeStr) {
+  if (!window.demoAudioElement) {
+    if (window.currentAudioUrl) {
+      window.playDemoAudio(document.querySelector('.rpt-player-btn'));
+    } else {
+      alert('Audio non disponibile per questa sessione.');
+      return;
+    }
+  }
+  const parts = timeStr.split(':');
+  if (parts.length === 2) {
+    const mins = parseInt(parts[0], 10);
+    const secs = parseInt(parts[1], 10);
+    const totalSecs = (mins * 60) + secs;
+    window.demoAudioElement.currentTime = totalSecs;
+    if (window.demoAudioElement.paused) {
+      window.demoAudioElement.play();
+      window.demoAudioPlaying = true;
+      const btn = document.querySelector('.rpt-player-btn');
+      if (btn) btn.classList.add('playing');
+    }
+  }
+}
+
+// ── ALPHA AI MODAL LOGIC ──
+let alphaAIChatHistory = [];
+let alphaAIContextPhase = 'Generale';
+
+function openAlphaAIModal(btn) {
+  // Ripulisci la chat e la history quando si apre una nuova chat
+  const chatArea = document.getElementById('alpha-ai-chat-area');
+  if (chatArea) {
+    chatArea.innerHTML = '';
+  }
+  alphaAIChatHistory = [];
+  alphaAIContextPhase = 'Generale';
+  if (btn) {
+    const phaseHdr = btn.closest('.rpt-section')?.querySelector('.rpt-phase-title');
+    if (phaseHdr) {
+      alphaAIContextPhase = phaseHdr.textContent.trim();
+    }
+  }
+
+  document.getElementById('alpha-ai-modal').style.display = 'flex';
+  document.getElementById('alpha-ai-input').focus();
+  
+  if (btn) {
+    // Find the closest section content container
+    const section = btn.closest('.rpt-section-content') || btn.closest('.rpt-section');
+    if (section) {
+      // Find the grid of 4 competencies
+      const grid = section.querySelector('.crm-comp-grid');
+      if (grid) {
+        // Use requestAnimationFrame to let the browser render the modal first
+        requestAnimationFrame(() => {
+          const scrollContainer = document.querySelector('.app-main');
+          if (scrollContainer) {
+            const gridRect = grid.getBoundingClientRect();
+            // We want gridRect.bottom to exactly equal (window.innerHeight - 16)
+            const targetBottom = window.innerHeight - 16;
+            const scrollDiff = gridRect.bottom - targetBottom;
+            
+            // Animazione di scroll ultra-fluida (Apple-like spring/expo)
+            const duration = 400; // 400ms: molto più scattante, allineato col tempo di apertura del modal
+            const startScroll = scrollContainer.scrollTop;
+            const startTime = performance.now();
+            
+            function easeOutExpo(t) {
+              return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+            }
+            
+            function step(currentTime) {
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const easeProgress = easeOutExpo(progress);
+              
+              scrollContainer.scrollTop = startScroll + (scrollDiff * easeProgress);
+              
+              if (progress < 1) {
+                requestAnimationFrame(step);
+              }
+            }
+            
+            requestAnimationFrame(step);
+          }
+        });
+      }
+    }
+  }
+}
+
+function closeAlphaAIModal() {
+  document.getElementById('alpha-ai-modal').style.display = 'none';
+}
+
+async function sendAlphaAIMessage() {
+  const input = document.getElementById('alpha-ai-input');
+  const chatArea = document.getElementById('alpha-ai-chat-area');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  if (!activeSessionId) {
+    showToast('Nessuna sessione attiva.');
+    return;
+  }
+
+  // Aggiungi il messaggio dell'utente alla UI
+  const userMsgHtml = `<div class="alpha-ai-chat-msg user-msg">
+    ${escapeHtml(text).replace(/\n/g, '<br>')}
+  </div>`;
+  chatArea.insertAdjacentHTML('beforeend', userMsgHtml);;
+  playAppleSendSound();
+  
+  // Svuota l'input e scrolla giù
+  input.value = '';
+  input.style.height = '24px';
+  chatArea.scrollTop = chatArea.scrollHeight;
+
+  // Aggiungi un indicatore di caricamento "thinking"
+  const loadingHtml = `<div class="loading-msg" style="align-self: flex-start; padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+    <div class="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>
+  </div>`;
+  chatArea.insertAdjacentHTML('beforeend', loadingHtml);
+  chatArea.scrollTop = chatArea.scrollHeight;
+
+  try {
+    const response = await fetch('/api/session/' + activeSessionId + '/ask-alpha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: text,
+        history: alphaAIChatHistory,
+        contextPhase: alphaAIContextPhase
+      })
+    });
+
+    // Rimuovi l'indicatore di caricamento
+    const loader = chatArea.querySelector('.loading-msg');
+    if (loader) loader.remove();
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Errore di rete');
+    }
+
+    const data = await response.json();
+    
+    // Aggiorna la history con la nuova interazione
+    alphaAIChatHistory.push({ role: 'user', content: text });
+    alphaAIChatHistory.push({ role: 'assistant', content: data.text });
+
+    // Per formattare la risposta dell'AI (convertire 
+
+    let formattedText = data.text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    // Aggiungi la risposta dell'AI alla UI
+    const aiMsgHtml = `
+      <div style="align-self: flex-start; display: flex; flex-direction: column; gap: 4px; max-width: 90%;">
+        <div class="alpha-ai-chat-msg ai-msg" style="align-self: flex-start; max-width: 100%;">
+          ${formattedText}
+        </div>
+        <div style="font-size: 11px; color: var(--db-text-tertiary); font-weight: 600; padding-left: 2px; display: flex; align-items: center; gap: 4px; letter-spacing: 0.2px;">
+          <span style="display: inline-block; width: 10px; height: 10px; background-color: var(--db-text-tertiary); -webkit-mask-image: url('alpha-icon-only.png'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;"></span> Alpha AI
+        </div>
+      </div>
+`;
+    chatArea.insertAdjacentHTML('beforeend', aiMsgHtml);;
+    playAppleReceiveSound();
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+  } catch (error) {
+    console.error('Errore durante la richiesta ad Alpha AI:', error);
+    const loader = chatArea.querySelector('.loading-msg');
+    if (loader) loader.remove();
+    const errorMsgHtml = `<div class="alpha-ai-chat-msg ai-msg" style="color: var(--db-text-danger);">
+      Scusa, si è verificato un errore di connessione. Riprova più tardi.
+    </div>`;
+    chatArea.insertAdjacentHTML('beforeend', errorMsgHtml);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('alpha-ai-modal');
+    if (modal && modal.style.display === 'flex') {
+      closeAlphaAIModal();
+    }
+  }
+});
+
+// Auto-resize textarea
+const aiInput = document.getElementById('alpha-ai-input');
+if (aiInput) {
+  aiInput.addEventListener('input', function() {
+    this.style.height = '24px'; // reset
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+  aiInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAlphaAIMessage();
+    }
+  });
+}
+
+// Close modal when clicking outside of it
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('alpha-ai-modal');
+  if (modal && modal.style.display === 'flex') {
+    if (e.target === modal) { // clicked on the overlay background
+      closeAlphaAIModal();
+    }
+  }
+});
+
+
+// ═══ DYNAMIC ISLAND JS ═══
+window.toggleStatusMenu = function(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('di-status-menu');
+  if (menu) {
+    menu.classList.toggle('show');
+  }
+};
+
+window.updateStatus = async function(sessionId, newStatus) {
+  try {
+    const res = await fetch('/api/session/' + sessionId + '/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      document.getElementById('di-current-status').textContent = newStatus;
+      const diBtn = document.getElementById('di-btn-status');
+      if (diBtn) {
+        let btnClass = "pending";
+        if (newStatus === 'Shortlisted') btnClass = "completed";
+        else if (newStatus === 'Scartato') btnClass = "rejected";
+        else if (newStatus === 'In valutazione') btnClass = "interview";
+        else if (newStatus === 'Da valutare') btnClass = "pending";
+        diBtn.className = 'di-btn ' + btnClass;
+      }
+      // Aggiorna anche lo stato nella tabella se è visibile
+      const rowStatus = document.getElementById('status-' + sessionId);
+      if (rowStatus) {
+        let sc = "pending";
+        if (newStatus === 'Shortlisted') sc = "completed";
+        else if (newStatus === 'Scartato') sc = "rejected";
+        else if (newStatus === 'In valutazione') sc = "interview";
+        else if (newStatus === 'Da valutare') sc = "pending";
+        
+        rowStatus.innerHTML = `<span class="status-dot"></span>${newStatus}`;
+        rowStatus.className = 'status-pill ' + sc;
+      }
+    }
+  } catch (err) {
+    console.error('Error updating status', err);
+  }
+};
+
+// Chiudi il menù se si clicca fuori
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('di-status-menu');
+  if (menu && menu.classList.contains('show')) {
+    menu.classList.remove('show');
+  }
+});
+
+// ── ALPHA AI CHAT SOUNDS ──
+let alphaAudioCtx = null;
+
+function initAudio() {
+  if (!alphaAudioCtx) {
+    alphaAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (alphaAudioCtx.state === 'suspended') {
+    alphaAudioCtx.resume();
+  }
+}
+
+function playAppleSendSound() {
+  initAudio();
+  const t = alphaAudioCtx.currentTime;
+  
+  // Premium iMessage Send Sound: very quick pop up
+  const osc = alphaAudioCtx.createOscillator();
+  const gain = alphaAudioCtx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(300, t);
+  osc.frequency.exponentialRampToValueAtTime(800, t + 0.05); // Molto veloce
+  
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.3, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08); // Decade subito
+  
+  osc.connect(gain);
+  gain.connect(alphaAudioCtx.destination);
+  
+  osc.start(t);
+  osc.stop(t + 0.1);
+}
+
+function playAppleReceiveSound() {
+  initAudio();
+  const t = alphaAudioCtx.currentTime;
+  
+  // Premium iMessage Receive Sound (Double Pop)
+  
+  // First Pop (Low)
+  const osc1 = alphaAudioCtx.createOscillator();
+  const gain1 = alphaAudioCtx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(400, t);
+  osc1.frequency.exponentialRampToValueAtTime(600, t + 0.05);
+  gain1.gain.setValueAtTime(0, t);
+  gain1.gain.linearRampToValueAtTime(0.2, t + 0.01);
+  gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  osc1.connect(gain1);
+  gain1.connect(alphaAudioCtx.destination);
+  osc1.start(t);
+  osc1.stop(t + 0.1);
+  
+  // Second Pop (High)
+  const t2 = t + 0.08;
+  const osc2 = alphaAudioCtx.createOscillator();
+  const gain2 = alphaAudioCtx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(600, t2);
+  osc2.frequency.exponentialRampToValueAtTime(900, t2 + 0.05);
+  gain2.gain.setValueAtTime(0, t2);
+  gain2.gain.linearRampToValueAtTime(0.2, t2 + 0.01);
+  gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.08);
+  osc2.connect(gain2);
+  gain2.connect(alphaAudioCtx.destination);
+  osc2.start(t2);
+  osc2.stop(t2 + 0.1);
+}
+
+// Coming soon toasts for sidebar items
+document.addEventListener('DOMContentLoaded', () => {
+  const comingSoonMsg = "Stiamo lavorando per integrare queste funzioni 🚀";
+  
+  const navCompare = document.getElementById('nav-compare');
+  if (navCompare) {
+    navCompare.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof showToast === 'function') showToast(comingSoonMsg);
+    });
+  }
+
+  const navSettings = document.getElementById('nav-settings');
+  if (navSettings) {
+    navSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof showToast === 'function') showToast(comingSoonMsg);
+    });
+  }
+});
+
+// Coming soon toasts for sidebar items
+document.addEventListener('DOMContentLoaded', () => {
+  const comingSoonMsg = "Stiamo lavorando per integrare queste funzioni 🚀";
+  
+  const navCompare = document.getElementById('nav-compare');
+  if (navCompare) {
+    navCompare.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof showToast === 'function') showToast(comingSoonMsg);
+    });
+  }
+
+  const navSettings = document.getElementById('nav-settings');
+  if (navSettings) {
+    navSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof showToast === 'function') showToast(comingSoonMsg);
+    });
+  }
+});

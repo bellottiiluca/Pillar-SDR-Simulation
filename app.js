@@ -536,7 +536,20 @@ function addMsgToChannel(channel, msgEl, opts = {}) {
     updateBadge(channel);
   }
   // Play sound for incoming messages (not for own messages)
-  if (!opts.silent && !opts.own) playNotifSound();
+  if (!opts.silent && !opts.own) {
+    playNotifSound();
+    
+    // Show toast ONLY if we are explicitly in CRM, Discovery, or Qualification (and not connecting)
+    const activePhase = Array.from(document.querySelectorAll('.phase')).find(p => p.classList.contains('active'));
+    const allowedPhases = ['phase-crm', 'phase-call', 'phase-qualification'];
+    
+    const connectingScreen = document.getElementById('call-connecting');
+    const isConnecting = connectingScreen && connectingScreen.classList.contains('active');
+    
+    if (activePhase && allowedPhases.includes(activePhase.id) && !isConnecting && opts.senderName) {
+      showSlackToast(opts.sender, opts.senderName, opts.content);
+    }
+  }
 }
 
 function updateBadge(channel) {
@@ -656,28 +669,34 @@ document.querySelector('.ws-sidebar').addEventListener('click', (e) => {
 // ── Pre-populate channels ──
 function prePopulateChannels() {
   // #general — team already active
-  const g1 = createMsgHTML(team.luca, '08:45', 'Buongiorno a tutti! ☕', {}, 'general');
-  const g2 = createMsgHTML(team.giulia, '08:47', 'Buongiorno! Oggi ho 3 follow-up da fare 💪', {}, 'general');
-  const g3 = createMsgHTML(team.sara, '08:52', 'Demo chiusa con EdilNova 🎉 Contratto firmato!', {
+  const g1 = createMsgHTML(team.luca, '08:45', 'Buongiorno a tutti ☕️', {}, 'general');
+  const g2 = createMsgHTML(team.giulia, '08:47', 'Buongiornoo, oggi giornata follow-up 😅', {}, 'general');
+  const g3 = createMsgHTML(team.sara, '08:52', 'EdilNova chiusa 🎉 contratto firmato!', {
     reactions: [
       { emoji: '🎉', count: 6 },
       { emoji: '🚀', count: 4 },
       { emoji: '💪', count: 3 },
     ]
   }, 'general');
-  channelMessages.general.push(g1, g2, g3);
+  const g4 = createMsgHTML(team.andrea, '08:54', 'Grandeee 🔥', {}, 'general');
+  const g5 = createMsgHTML(team.marco, '08:56', 'Finalmente ahah, complimenti Sara 👏', {}, 'general');
+  
+  channelMessages.general.push(g1, g2, g3, g4, g5);
   channelHistory.general.push(
-    { sender: 'luca', senderName: team.luca.name, content: 'Buongiorno a tutti! ☕' },
-    { sender: 'giulia', senderName: team.giulia.name, content: 'Buongiorno! Oggi ho 3 follow-up da fare 💪' },
-    { sender: 'sara', senderName: team.sara.name, content: 'Demo chiusa con EdilNova 🎉 Contratto firmato!' }
+    { sender: 'luca', senderName: team.luca.name, content: 'Buongiorno a tutti ☕️' },
+    { sender: 'giulia', senderName: team.giulia.name, content: 'Buongiornoo, oggi giornata follow-up 😅' },
+    { sender: 'sara', senderName: team.sara.name, content: 'EdilNova chiusa 🎉 contratto firmato!' },
+    { sender: 'andrea', senderName: team.andrea.name, content: 'Grandeee 🔥' },
+    { sender: 'marco', senderName: team.marco.name, content: 'Finalmente ahah, complimenti Sara 👏' }
   );
 
   // #sales — pipeline context
-  const s1 = createMsgHTML(team.marco, '08:30', 'Aggiornamento pipeline: questa settimana abbiamo <em>12 deal attivi</em> e 3 in fase di closing.', {}, 'sales');
-  const s2 = createMsgHTML(team.sara, '08:35', 'Ho un follow-up con Costruzioni Romani alle 14:00. Se qualcuno ha info sul loro volume cantieri, mi faccia sapere.', {}, 'sales');
-  const s3 = createMsgHTML(team.marco, '08:40', 'Reminder: obiettivo settimanale è <em>8 demo prenotate</em>. Siamo a 5. Spingiamo 🔥', {}, 'sales');
+  const s1 = createMsgHTML(team.marco, '08:30', 'Pipeline update: 12 deal attive, 3 dovrebbero chiudere a breve. Facciamo bene i follow-up oggi 🙏', {}, 'sales');
+  const s2 = createMsgHTML(team.sara, '08:35', 'Qualcuno ha info su Costruzioni Romani? li sento alle 14 e volevo capire quanti cantieri hanno attivi', {}, 'sales');
+  const s3 = createMsgHTML(team.andrea, '08:37', 'Io no, provo a guardare se trovo qualcosa nel CRM', {}, 'sales');
+  const s4 = createMsgHTML(team.marco, '08:40', 'Siamo a 5/8 demo questa settimana, ne mancano 3 👀', {}, 'sales');
   
-  const pdfContent = `Lascio qui una panoramica aggiornata di Pillar, con le principali funzionalità e una sintesi di come si collegano tra loro. Così rimane a disposizione del team 👍
+  const pdfContent = `Lascio qui l’overview aggiornata di Pillar, così rimane a disposizione del team 👇
 <a href="Pillar%20Product%20Overview.pdf" target="_blank" class="ws-file-attachment">
   <div class="ws-file-icon">PDF</div>
   <div class="ws-file-info">
@@ -685,23 +704,26 @@ function prePopulateChannels() {
     <div class="ws-file-meta">Documento • 168 KB</div>
   </div>
 </a>`;
-  const s4 = createMsgHTML(team.sara, '08:48', pdfContent, {}, 'sales');
+  const s5 = createMsgHTML(team.sara, '08:48', pdfContent, {}, 'sales');
+  const s6 = createMsgHTML(team.luca, '08:53', 'Grazie, me la salvo 🙏', {}, 'sales');
 
-  channelMessages.sales.push(s1, s2, s3, s4);
+  channelMessages.sales.push(s1, s2, s3, s4, s5, s6);
   channelHistory.sales.push(
-    { sender: 'marco', senderName: team.marco.name, content: 'Aggiornamento pipeline: questa settimana abbiamo 12 deal attivi e 3 in fase di closing.' },
-    { sender: 'sara', senderName: team.sara.name, content: 'Ho un follow-up con Costruzioni Romani alle 14:00. Se qualcuno ha info sul loro volume cantieri, mi faccia sapere.' },
-    { sender: 'marco', senderName: team.marco.name, content: 'Reminder: obiettivo settimanale è 8 demo prenotate. Siamo a 5. Spingiamo 🔥' },
-    { sender: 'sara', senderName: team.sara.name, content: 'Lascio qui una panoramica aggiornata di Pillar, con le principali funzionalità e una sintesi di come si collegano tra loro. Così rimane a disposizione del team 👍 [Allegato: Pillar — Product Overview.pdf]' }
+    { sender: 'marco', senderName: team.marco.name, content: 'Pipeline update: 12 deal attive, 3 dovrebbero chiudere a breve. Facciamo bene i follow-up oggi 🙏' },
+    { sender: 'sara', senderName: team.sara.name, content: 'Qualcuno ha info su Costruzioni Romani? li sento alle 14 e volevo capire quanti cantieri hanno attivi' },
+    { sender: 'andrea', senderName: team.andrea.name, content: 'Io no, provo a guardare se trovo qualcosa nel CRM' },
+    { sender: 'marco', senderName: team.marco.name, content: 'Siamo a 5/8 demo questa settimana, ne mancano 3 👀' },
+    { sender: 'sara', senderName: team.sara.name, content: 'Lascio qui l’overview aggiornata di Pillar, così rimane a disposizione del team 👇 [Allegato: Pillar — Product Overview.pdf]' },
+    { sender: 'luca', senderName: team.luca.name, content: 'Grazie, me la salvo 🙏' }
   );
 
   // #inbound — lead context
-  const i1 = createMsgHTML(team.andrea, '08:50', '📊 Report settimanale: <em>14 nuovi lead</em> da campagne LinkedIn e Google Ads. Qualità media alta.', {}, 'inbound');
-  const i2 = createMsgHTML(team.marco, '08:55', 'Grazie Andrea. Team SDR: controllate la pipeline, ci sono opportunità calde da qualificare oggi.', {}, 'inbound');
+  const i1 = createMsgHTML(team.andrea, '08:50', '14 inbound nuovi stamattina, principalmente LinkedIn + Google. Qualità sembra buona 👀', {}, 'inbound');
+  const i2 = createMsgHTML(team.marco, '08:55', 'Dateci un occhio appena riuscite, ce ne sono un paio interessanti', {}, 'inbound');
   channelMessages.inbound.push(i1, i2);
   channelHistory.inbound.push(
-    { sender: 'andrea', senderName: team.andrea.name, content: '📊 Report settimanale: 14 nuovi lead da campagne LinkedIn e Google Ads. Qualità media alta.' },
-    { sender: 'marco', senderName: team.marco.name, content: 'Grazie Andrea. Team SDR: controllate la pipeline, ci sono opportunità calde da qualificare oggi.' }
+    { sender: 'andrea', senderName: team.andrea.name, content: '14 inbound nuovi stamattina, principalmente LinkedIn + Google. Qualità sembra buona 👀' },
+    { sender: 'marco', senderName: team.marco.name, content: 'Dateci un occhio appena riuscite, ce ne sono un paio interessanti' }
   );
 }
 
@@ -967,13 +989,36 @@ async function triggerAutoReply(channel, userText) {
   // Handle DM Phase Transitions after the AI's final block is displayed
   if (channel === 'dm-sara' && isHandoffTransition) {
     replyCountPerChannel['dm-sara'] = 999; // lock
+    
+    if (typeof analytics !== 'undefined') {
+      if (!analytics.handoff) analytics.handoff = {};
+      analytics.handoff.slackThread = channelHistory['dm-sara'].map((m, idx) => ({
+        sender: m.sender === 'user' ? candidateName : m.senderName,
+        role: m.sender === 'user' ? 'SDR Inbound' : 'Account Executive',
+        text: m.content,
+        timestamp: wsNow(),
+        isReply: idx > 0
+      }));
+    }
+
     await wsDelay(2500);
     triggerSlackPostHandoff(currentLead);
   } else if (channel === 'dm-marco' && isHandoffTransition) {
     replyCountPerChannel['dm-marco'] = 999; // lock
+    
+    if (typeof analytics !== 'undefined') {
+      analytics.processThread = channelHistory['dm-marco'].map((m, idx) => ({
+        sender: m.sender === 'user' ? candidateName : m.senderName,
+        role: m.sender === 'user' ? 'SDR Inbound' : 'Sales Manager',
+        text: m.content,
+        timestamp: wsNow(),
+        isReply: idx > 0
+      }));
+    }
+
     await wsDelay(1500);
     await showTyping(team.marco.name, 1500);
-    const lastNote = "Grazie mille per questo spunto. Senti, prima di chiudere la simulazione, c'è un'ultima persona che vorrebbe farti qualche domanda: Gabriel, il nostro Founder.";
+    const lastNote = "Senti, prima di chiudere la simulazione, c'è un'ultima persona che vorrebbe farti qualche domanda: Gabriel, il nostro Founder.";
     const msgLastNote = createMsgHTML(team.marco, wsNow(), lastNote, {}, 'dm-marco');
     addMsgToChannel('dm-marco', msgLastNote, { sender: 'marco', senderName: team.marco.name, content: lastNote });
     await wsDelay(800);
@@ -1006,32 +1051,75 @@ async function triggerAutoReply(channel, userText) {
 
 // ── Background activity in #general ──
 async function runBackgroundActivity() {
-  await wsDelay(5000);
+  await wsDelay(10000); // 09:02
 
-  const bg1 = createMsgHTML(team.andrea, '09:03', `Buona fortuna ${candidateName}! 🚀`, {}, 'general');
-  addMsgToChannel('general', bg1, { sender: 'andrea', senderName: team.andrea.name, content: `Buona fortuna ${candidateName}! 🚀` });
+  const bg_i1 = createMsgHTML(team.luca, '09:02', 'GreenHouse lo prende qualcuno? hanno scaricato una guida ma non capisco quanto siano avanti', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i1, { sender: 'luca', senderName: team.luca.name, content: 'GreenHouse lo prende qualcuno? hanno scaricato una guida ma non capisco quanto siano avanti' });
 
-  await wsDelay(7000);
+  await wsDelay(9000); // 09:03
 
-  const bg2 = createMsgHTML(team.luca, '09:05', 'Qualcuno ha visto il lead di Edil Bianchi? Sembra interessante.', {}, 'general');
-  addMsgToChannel('general', bg2, { sender: 'luca', senderName: team.luca.name, content: 'Qualcuno ha visto il lead di Edil Bianchi? Sembra interessante.' });
+  const bg_g1 = createMsgHTML(team.andrea, '09:03', `In bocca al lupo per oggi ${candidateName} 🚀`, {}, 'general');
+  addMsgToChannel('general', bg_g1, { sender: 'andrea', senderName: team.andrea.name, content: `In bocca al lupo per oggi ${candidateName} 🚀` });
 
-  await wsDelay(8000);
+  await wsDelay(9000); // 09:04
 
-  const bg3 = createMsgHTML(team.marco, '09:08', 'Team, ricordatevi la sync alle 11:00. Portate i numeri aggiornati 📊', {}, 'general');
-  addMsgToChannel('general', bg3, { sender: 'marco', senderName: team.marco.name, content: 'Team, ricordatevi la sync alle 11:00. Portate i numeri aggiornati 📊' });
+  const bg_i2 = createMsgHTML(team.giulia, '09:04', 'Non ancora, io sto finendo quelli di ieri', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i2, { sender: 'giulia', senderName: team.giulia.name, content: 'Non ancora, io sto finendo quelli di ieri' });
 
-  await wsDelay(12000);
+  await wsDelay(9000); // 09:05
 
-  // Notification in #inbound
-  const ib = createMsgHTML(team.andrea, '09:12', '🔔 Nuovo lead inbound: <em>Costruzioni Verdi Srl</em> ha visitato la pagina prezzi 3 volte oggi.', {}, 'inbound');
-  addMsgToChannel('inbound', ib, { sender: 'andrea', senderName: team.andrea.name, content: '🔔 Nuovo lead inbound: Costruzioni Verdi Srl ha visitato la pagina prezzi 3 volte oggi.' });
+  const bg_g2 = createMsgHTML(team.luca, '09:05', 'Ma il lead di Edil Bianchi l’ha già preso qualcuno? sembra interessante', {}, 'general');
+  addMsgToChannel('general', bg_g2, { sender: 'luca', senderName: team.luca.name, content: 'Ma il lead di Edil Bianchi l’ha già preso qualcuno? sembra interessante' });
 
-  await wsDelay(10000);
+  await wsDelay(9000); // 09:06
 
-  // Sales update
-  const su = createMsgHTML(team.sara, '09:18', 'Update: Costruzioni Romani ha confermato la demo per domani alle 10:00 🎯', {}, 'sales');
-  addMsgToChannel('sales', su, { sender: 'sara', senderName: team.sara.name, content: 'Update: Costruzioni Romani ha confermato la demo per domani alle 10:00 🎯' });
+  const bg_g3 = createMsgHTML(team.giulia, '09:06', 'Non io', {}, 'general');
+  addMsgToChannel('general', bg_g3, { sender: 'giulia', senderName: team.giulia.name, content: 'Non io' });
+
+  await wsDelay(5000); // 09:06 still
+
+  const bg_i3 = createMsgHTML(team.andrea, '09:06', 'Io gli darei un’occhiata ma non mi sembra urgentissimo', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i3, { sender: 'andrea', senderName: team.andrea.name, content: 'Io gli darei un’occhiata ma non mi sembra urgentissimo' });
+
+  await wsDelay(15000); // 09:08
+
+  const bg_g4 = createMsgHTML(team.marco, '09:08', 'Reminder sync alle 11. Portatevi i numeri aggiornati pls', {}, 'general');
+  addMsgToChannel('general', bg_g4, { sender: 'marco', senderName: team.marco.name, content: 'Reminder sync alle 11. Portatevi i numeri aggiornati pls' });
+
+  await wsDelay(15000); // 09:10
+
+  const bg_g5 = createMsgHTML(team.sara, '09:10', 'Io arrivo probabilmente 5 min dopo, ho una call che finisce alle 11 😅', {}, 'general');
+  addMsgToChannel('general', bg_g5, { sender: 'sara', senderName: team.sara.name, content: 'Io arrivo probabilmente 5 min dopo, ho una call che finisce alle 11 😅' });
+
+  await wsDelay(15000); // 09:12
+
+  const bg_i4 = createMsgHTML(team.andrea, '09:12', 'Nuovo inbound: Costruzioni Verdi Srl - 3 visite alla pagina prezzi stamattina 🔔', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i4, { sender: 'andrea', senderName: team.andrea.name, content: 'Nuovo inbound: Costruzioni Verdi Srl - 3 visite alla pagina prezzi stamattina 🔔' });
+
+  await wsDelay(9000); // 09:13
+
+  const bg_i5 = createMsgHTML(team.luca, '09:13', 'Questo sembra interessante 👀', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i5, { sender: 'luca', senderName: team.luca.name, content: 'Questo sembra interessante 👀' });
+
+  await wsDelay(9000); // 09:14
+
+  const bg_s1 = createMsgHTML(team.sara, '09:14', 'Update Romani: confermati per domani alle 10 🎯', {}, 'sales');
+  addMsgToChannel('sales', bg_s1, { sender: 'sara', senderName: team.sara.name, content: 'Update Romani: confermati per domani alle 10 🎯' });
+
+  await wsDelay(9000); // 09:15
+
+  const bg_i6 = createMsgHTML(team.marco, '09:15', 'Yep, chi si libera gli dia un occhio', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i6, { sender: 'marco', senderName: team.marco.name, content: 'Yep, chi si libera gli dia un occhio' });
+
+  await wsDelay(9000); // 09:16
+
+  const bg_s2 = createMsgHTML(team.marco, '09:16', 'Perfetto', {}, 'sales');
+  addMsgToChannel('sales', bg_s2, { sender: 'marco', senderName: team.marco.name, content: 'Perfetto' });
+
+  await wsDelay(15000); // 09:18
+
+  const bg_i7 = createMsgHTML(team.giulia, '09:18', 'Lo prendo io 👍', {}, 'inbound');
+  addMsgToChannel('inbound', bg_i7, { sender: 'giulia', senderName: team.giulia.name, content: 'Lo prendo io 👍' });
 }
 
 // ── Main workspace start ──
@@ -1319,22 +1407,22 @@ async function triggerSlackHandoffToSara(lead) {
 
   await showTyping(team.sara.name, 1800);
   const s2 = createMsgHTML(team.sara, wsNow(), `Ho visto che Marco mi ha passato <strong>${leadName}</strong>.`, {}, 'dm-sara');
-  addMsgToChannel('dm-sara', s2, { sender: 'sara', senderName: team.sara.name, content: `Marco mi ha passato ${leadName}.` });
+  addMsgToChannel('dm-sara', s2, { sender: 'sara', senderName: team.sara.name, content: `Ho visto che Marco mi ha passato ${leadName}.` });
   await wsDelay(1500);
 
   await showTyping(team.sara.name, 2200);
   const s3 = createMsgHTML(team.sara, wsNow(), `Ho dato un’occhiata alla qualification che hai appena aggiornato. Prima di occuparmi del lead, mi prepari un breve handoff?`, {}, 'dm-sara');
-  addMsgToChannel('dm-sara', s3, { sender: 'sara', senderName: team.sara.name, content: 'Mi prepari un breve handoff?' });
+  addMsgToChannel('dm-sara', s3, { sender: 'sara', senderName: team.sara.name, content: `Ho dato un’occhiata alla qualification che hai appena aggiornato. Prima di occuparmi del lead, mi prepari un breve handoff?` });
   await wsDelay(1500);
 
   await showTyping(team.sara.name, 2500);
   const s4 = createMsgHTML(team.sara, wsNow(), `Non serve ripetere tutto quello che hai già inserito nel CRM: concentrati su ciò che ritieni più importante che sappia sul lead, su cosa è emerso dalla conversazione e su come pensi dovremmo procedere.`, {}, 'dm-sara');
-  addMsgToChannel('dm-sara', s4, { sender: 'sara', senderName: team.sara.name, content: 'Concentrati su ciò che è importante.' });
+  addMsgToChannel('dm-sara', s4, { sender: 'sara', senderName: team.sara.name, content: `Non serve ripetere tutto quello che hai già inserito nel CRM: concentrati su ciò che ritieni più importante che sappia sul lead, su cosa è emerso dalla conversazione e su come pensi dovremmo procedere.` });
   await wsDelay(1500);
 
   await showTyping(team.sara.name, 1800);
   const s5 = createMsgHTML(team.sara, wsNow(), `Mi basta avere il contesto necessario per capire rapidamente la situazione e decidere come muovermi.`, {}, 'dm-sara');
-  addMsgToChannel('dm-sara', s5, { sender: 'sara', senderName: team.sara.name, content: 'Mi basta avere il contesto necessario.' });
+  addMsgToChannel('dm-sara', s5, { sender: 'sara', senderName: team.sara.name, content: `Mi basta avere il contesto necessario per capire rapidamente la situazione e decidere come muovermi.` });
   await wsDelay(1200);
 
   await showTyping(team.sara.name, 600);
@@ -1492,43 +1580,43 @@ async function triggerSlackPostHandoff(lead) {
   // Message 1
   await showTyping(team.marco.name, 1000);
   const m1 = createMsgHTML(team.marco, wsNow(), `Ottimo lavoro. 👏`, { forceNewBlock: true }, 'dm-marco');
-  addMsgToChannel('dm-marco', m1, { sender: 'marco', senderName: team.marco.name, content: 'Ottimo lavoro.' });
+  addMsgToChannel('dm-marco', m1, { sender: 'marco', senderName: team.marco.name, content: `Ottimo lavoro. 👏` });
   await wsDelay(1200);
 
   // Message 2
   await showTyping(team.marco.name, 1400);
   const m2 = createMsgHTML(team.marco, wsNow(), `Hai completato tutte le attività operative della giornata.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m2, { sender: 'marco', senderName: team.marco.name, content: 'Tutte le attività completate.' });
+  addMsgToChannel('dm-marco', m2, { sender: 'marco', senderName: team.marco.name, content: `Hai completato tutte le attività operative della giornata.` });
   await wsDelay(1200);
 
   // Message 3
   await showTyping(team.marco.name, 1200);
   const m3 = createMsgHTML(team.marco, wsNow(), `Prima di proseguire, vorrei chiederti una cosa.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m3, { sender: 'marco', senderName: team.marco.name, content: 'Vorrei chiederti una cosa.' });
+  addMsgToChannel('dm-marco', m3, { sender: 'marco', senderName: team.marco.name, content: `Prima di proseguire, vorrei chiederti una cosa.` });
   await wsDelay(1500);
 
   // Message 4
   await showTyping(team.marco.name, 2400);
   const m4 = createMsgHTML(team.marco, wsNow(), `Hai appena lavorato sulla pipeline inbound, gestito una discovery call, aggiornato la qualification e preparato l’handoff per l’Account Executive.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m4, { sender: 'marco', senderName: team.marco.name, content: 'Hai usato tutto il nostro processo.' });
+  addMsgToChannel('dm-marco', m4, { sender: 'marco', senderName: team.marco.name, content: `Hai appena lavorato sulla pipeline inbound, gestito una discovery call, aggiornato la qualification e preparato l’handoff per l’Account Executive.` });
   await wsDelay(1200);
 
   // Message 5
   await showTyping(team.marco.name, 2000);
   const m5 = createMsgHTML(team.marco, wsNow(), `Ora che hai visto l’intero processo dall’interno, c’è qualcosa che cambieresti o miglioreresti nel modo in cui lavoriamo?`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m5, { sender: 'marco', senderName: team.marco.name, content: 'Cosa miglioreresti?' });
+  addMsgToChannel('dm-marco', m5, { sender: 'marco', senderName: team.marco.name, content: `Ora che hai visto l’intero processo dall’interno, c’è qualcosa che cambieresti o miglioreresti nel modo in cui lavoriamo?` });
   await wsDelay(1200);
 
   // Message 6
   await showTyping(team.marco.name, 1500);
   const m6 = createMsgHTML(team.marco, wsNow(), `Pensa a ciò che hai appena fatto e indicami fino a tre miglioramenti concreti che introdurresti, spiegandomi brevemente perché.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m6, { sender: 'marco', senderName: team.marco.name, content: 'Tre miglioramenti concreti.' });
+  addMsgToChannel('dm-marco', m6, { sender: 'marco', senderName: team.marco.name, content: `Pensa a ciò che hai appena fatto e indicami fino a tre miglioramenti concreti che introdurresti, spiegandomi brevemente perché.` });
   await wsDelay(1500);
 
   // Message 7
   await showTyping(team.marco.name, 1800);
   const m7 = createMsgHTML(team.marco, wsNow(), `Non cerco una risposta specifica: mi interessa capire cosa hai osservato, quali opportunità di miglioramento hai individuato e come ragioni.`, {}, 'dm-marco');
-  addMsgToChannel('dm-marco', m7, { sender: 'marco', senderName: team.marco.name, content: 'Come ragioni.' });
+  addMsgToChannel('dm-marco', m7, { sender: 'marco', senderName: team.marco.name, content: `Non cerco una risposta specifica: mi interessa capire cosa hai osservato, quali opportunità di miglioramento hai individuato e come ragioni.` });
 
   // Bind builder composer
   bindBuilderComposer(lead);
@@ -1653,7 +1741,7 @@ function bindBuilderComposer(lead) {
       // Show Gabriel review transition banner/note and button
       await wsDelay(1500);
       await showTyping(team.marco.name, 1500);
-      const lastNote = "Grazie mille per questo spunto. Senti, prima di chiudere la simulazione, c'è un'ultima persona che vorrebbe farti qualche domanda: Gabriel, il nostro Founder.";
+      const lastNote = "Senti, prima di chiudere la simulazione, c'è un'ultima persona che vorrebbe farti qualche domanda: Gabriel, il nostro Founder.";
       const msgLastNote = createMsgHTML(team.marco, wsNow(), lastNote, {}, 'dm-marco');
       addMsgToChannel('dm-marco', msgLastNote, { sender: 'marco', senderName: team.marco.name, content: lastNote });
       await wsDelay(800);
@@ -1763,7 +1851,7 @@ async function askFounderQuestion() {
   founderQuestionCount++;
 
   if (founderQuestionCount > FOUNDER_MAX_QUESTIONS) {
-    await closeFounderReview();
+    await requestCandidateCV();
     return;
   }
 
@@ -1868,6 +1956,7 @@ function bindFounderComposer() {
 
     // Reset textarea
     textarea.value = '';
+    textarea.style.height = 'auto';
     sendBtn.disabled = true;
 
     // Ask next question or close
@@ -1877,6 +1966,98 @@ function bindFounderComposer() {
   textarea.addEventListener('keydown', handleEnterKey);
   textarea.focus();
 }
+
+
+let isWaitingForCV = false;
+
+async function requestCandidateCV() {
+  await wsDelay(1000);
+  await showTyping(team.gabriel.name, 2000);
+  const cvText = "Perfetto, direi che ci siamo. Prima di chiudere, mandami anche il tuo CV così possiamo avere un quadro completo del tuo percorso 📎";
+  const msgHtml = createMsgHTML(team.gabriel, wsNow(), cvText, { forceNewBlock: true }, 'dm-gabriel');
+  addMsgToChannel('dm-gabriel', msgHtml, { sender: 'gabriel', senderName: team.gabriel.name, content: cvText });
+  founderConversation.push({ role: 'assistant', content: cvText });
+
+  const textarea = document.getElementById('ws-compose-textarea') || document.getElementById('ws-input');
+  const sendBtn = document.getElementById('ws-send');
+  if(textarea) {
+    textarea.disabled = true;
+    textarea.placeholder = "Allega il tuo CV tramite la graffetta...";
+  }
+  if(sendBtn) sendBtn.disabled = true;
+  
+  isWaitingForCV = true;
+}
+
+// Add event listener to paperclip
+function bindAttachBtn() {
+  const attachBtn = document.getElementById('ws-attach');
+  if(attachBtn) {
+    attachBtn.addEventListener('click', () => {
+      if (!isWaitingForCV) return;
+      
+      let fileInput = document.getElementById('hidden-cv-upload');
+      if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'hidden-cv-upload';
+        fileInput.accept = 'application/pdf';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+      }
+      
+      fileInput.value = '';
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Show file in chat immediately
+        const fileSizeKB = Math.round(file.size / 1024);
+        const pdfContent = `<a href="#" class="ws-file-attachment" style="pointer-events: none;">
+  <div class="ws-file-icon">PDF</div>
+  <div class="ws-file-info">
+    <div class="ws-file-name">${file.name}</div>
+    <div class="ws-file-meta">Documento • ${fileSizeKB} KB</div>
+  </div>
+</a>`;
+        
+        playSendSound();
+        const candidateMsg = createMsgHTML(candidateMember, wsNow(), pdfContent, { forceNewBlock: true, isUser: true }, 'dm-gabriel');
+        addMsgToChannel('dm-gabriel', candidateMsg, { sender: 'user', senderName: candidateName, content: `[Allegato: ${file.name}]` });
+        founderConversation.push({ role: 'user', content: `[Allegato: ${file.name}]` });
+        
+        isWaitingForCV = false;
+        const textarea = document.getElementById('ws-compose-textarea') || document.getElementById('ws-input');
+        if(textarea) textarea.placeholder = "Chat terminata.";
+
+        // Upload to server
+        const formData = new FormData();
+        formData.append('cv', file);
+        // We don't have sessionId yet, so we just upload and get the URL back
+        try {
+          const res = await fetch('/api/upload-cv', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.cvUrl) {
+            analytics.candidate = analytics.candidate || {};
+            analytics.candidate.cvUrl = data.cvUrl;
+          }
+        } catch(err) {
+          console.error("Upload error", err);
+        }
+        
+        // Finish simulation
+        await closeFounderReview();
+      };
+      fileInput.click();
+    });
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindAttachBtn);
+} else {
+  bindAttachBtn();
+}
+
 
 async function closeFounderReview() {
   window._composeOnSend = null;
@@ -1940,3 +2121,125 @@ async function closeFounderReview() {
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(runBoot, 200);
 });
+
+
+// ── Slack Toast Notification (CRM Phase) ──
+function showSlackToast(senderId, senderName, content) {
+  let container = document.getElementById('slack-toast-container');
+  
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'slack-toast-container';
+    document.body.appendChild(container);
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      #slack-toast-container {
+        position: fixed;
+        top: 12px;
+        right: 72px; /* 24px padding + 32px avatar + 16px gap */
+        height: 32px;
+        z-index: 9999;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+      }
+      .slack-toast {
+        height: 100%;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        padding: 0 12px 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transform: translateX(15px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        max-width: 800px;
+      }
+      .slack-toast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .slack-toast-icon {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, #4A154B, #E01E5A); /* Slack brand colors */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+        font-size: 11px;
+      }
+      .slack-toast-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .slack-toast-text-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .slack-toast-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+      .slack-toast-text {
+        font-size: 13px;
+        color: #64748b;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Clear any existing toasts so there is only ever ONE
+  container.innerHTML = '';
+
+  const toast = document.createElement('div');
+  toast.className = 'slack-toast';
+  
+  const shortName = senderName; // Use full name
+  const initial = shortName.charAt(0).toUpperCase();
+  const cleanContent = content.replace(/<[^>]+>/g, '').trim();
+
+  let avatarHTML = `<div class="slack-toast-icon">${initial}</div>`;
+  if (senderId && typeof team !== 'undefined' && team[senderId] && team[senderId].avatar) {
+    avatarHTML = `<img src="${team[senderId].avatar}" class="slack-toast-avatar" />`;
+  }
+
+  toast.innerHTML = `
+    ${avatarHTML}
+    <div class="slack-toast-text-wrap">
+      <span class="slack-toast-name">${shortName}:</span>
+      <span class="slack-toast-text">${cleanContent}</span>
+    </div>
+  `;
+
+  container.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  // Remove after 5 seconds
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => {
+      if (toast.parentNode === container) container.removeChild(toast);
+    });
+  }, 5000);
+}
