@@ -2970,7 +2970,7 @@ app.get('/login', (req, res) => {
   res.sendFile(join(__dirname, 'login.html'));
 });
 
-const ALLOWED_HR_EMAILS = ['bellottiiluca@gmail.com', 'andreapax790@gmail.com', 'luca@pillar.it'];
+const ALLOWED_HR_EMAILS = ['bellottiiluca@gmail.com', 'andreapax790@gmail.com', 'luca@pillar.it', 'riccardo.cerberi@gmail.com'];
 const otpStore = new Map(); // Store email -> { code, expires }
 
 // Request OTP Code
